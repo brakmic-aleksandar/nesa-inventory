@@ -11,6 +11,18 @@ interface DetailField {
   value: string | number;
 }
 
+function DetailImage({ image, colors }: { image?: string; colors: ReturnType<typeof useTheme>['colors'] }) {
+  const hasImage = Boolean(image && image !== 'placeholder');
+
+  return hasImage ? (
+    <Image source={{ uri: image }} style={styles.image} contentFit="cover" />
+  ) : (
+    <View style={styles.emptyImage}>
+      <Ionicons name="image-outline" size={160} color={colors.placeholderIcon} />
+    </View>
+  );
+}
+
 interface ItemDetailsDialogProps {
   name: string;
   image?: string;
@@ -20,8 +32,6 @@ interface ItemDetailsDialogProps {
 
 export function ItemDetailsDialog({ name, image, details, onClose }: ItemDetailsDialogProps) {
   const { colors } = useTheme();
-
-  const hasImage = Boolean(image && image !== 'placeholder');
 
   return (
     <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
@@ -34,13 +44,7 @@ export function ItemDetailsDialog({ name, image, details, onClose }: ItemDetails
           <Ionicons name="close" size={theme.iconSize.large} color={colors.textSecondary} />
         </Pressable>
 
-        {hasImage ? (
-          <Image source={{ uri: image }} style={styles.image} contentFit="cover" />
-        ) : (
-          <View style={styles.emptyImage}>
-            <Ionicons name="image-outline" size={160} color={colors.placeholderIcon} />
-          </View>
-        )}
+        <DetailImage image={image} colors={colors} />
 
         <View style={styles.detailsContainer}>
           <Text style={[styles.itemName, { color: colors.text }]}>{name}</Text>

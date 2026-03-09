@@ -26,6 +26,21 @@ interface StandScreenProps {
   cardTitle: string;
 }
 
+function StandLoadingSkeleton() {
+  return (
+    <ScrollView style={styles.scrollView}>
+      <SkeletonRow />
+      <SkeletonRow />
+      <SkeletonRow />
+      <SkeletonRow />
+      <SkeletonRow />
+      <SkeletonRow />
+      <SkeletonRow />
+      <SkeletonRow />
+    </ScrollView>
+  );
+}
+
 interface Item {
   id: number;
   name: string;
@@ -375,18 +390,8 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
-      {/* Loading State */}
       {loading ? (
-        <ScrollView style={styles.scrollView}>
-          <SkeletonRow />
-          <SkeletonRow />
-          <SkeletonRow />
-          <SkeletonRow />
-          <SkeletonRow />
-          <SkeletonRow />
-          <SkeletonRow />
-          <SkeletonRow />
-        </ScrollView>
+        <StandLoadingSkeleton />
       ) : rows.length === 0 ? (
         <EmptyState
           icon="cube-outline"

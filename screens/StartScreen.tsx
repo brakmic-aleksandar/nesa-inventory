@@ -12,6 +12,7 @@ import { Toast } from '../components/Toast';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { Customer } from '../database/schema';
 import { useCustomers } from '../hooks/useCustomers';
 import { useImportData } from '../hooks/useImportData';
 
@@ -19,6 +20,128 @@ interface StartScreenProps {
   onStartPress: (text: string) => void;
   onSettingsPress: () => void;
   refreshKey?: number;
+}
+
+function EmptyCustomersView({
+  colors,
+  t,
+  onImport,
+}: {
+  colors: ReturnType<typeof useTheme>['colors'];
+  t: ReturnType<typeof useLanguage>['t'];
+  onImport: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={styles.emptyCustomerState}
+      onPress={onImport}
+      activeOpacity={0.7}
+    >
+      <Ionicons name="people-outline" size={60} color={colors.textTertiary} />
+      <Text style={[styles.emptyCustomerText, { color: colors.textSecondary }]}>
+        {t.startScreen.noCustomers}
+      </Text>
+      <Text style={[styles.emptyCustomerSubtext, { color: colors.textTertiary }]}>
+        {t.startScreen.importCustomersHint}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+function CustomerListView({
+  colors,
+  t,
+  customerSearch,
+  setCustomerSearch,
+  filteredCustomers,
+  onSelect,
+}: {
+  colors: ReturnType<typeof useTheme>['colors'];
+  t: ReturnType<typeof useLanguage>['t'];
+  customerSearch: string;
+  setCustomerSearch: (value: string) => void;
+  filteredCustomers: Customer[];
+  onSelect: (customer: Customer) => void;
+}) {
+  return (
+    <>
+      <View
+        style={[
+          styles.searchContainer,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        <Ionicons
+          name="search"
+          size={theme.iconSize.small}
+          color={colors.textSecondary}
+          style={styles.searchIcon}
+        />
+        <TextInput
+          style={[styles.searchInput, { color: colors.text }]}
+          placeholder={t.startScreen.searchCustomers}
+          value={customerSearch}
+          onChangeText={setCustomerSearch}
+          placeholderTextColor={colors.textTertiary}
+        />
+        {customerSearch.length > 0 && (
+          <TouchableOpacity onPress={() => setCustomerSearch('')} style={styles.clearButton}>
+            <Ionicons
+              name="close-circle"
+              size={theme.iconSize.small}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {filteredCustomers.length === 0 ? (
+        <View style={styles.noResultsContainer}>
+          <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
+            {t.startScreen.noCustomersFound}
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.customerScrollView}
+          contentContainerStyle={styles.customerScrollContent}
+          showsVerticalScrollIndicator={true}
+        >
+          {filteredCustomers.map((customer) => (
+            <TouchableOpacity
+              key={customer.id}
+              style={[
+                styles.customerCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  ...theme.elevation.low,
+                },
+              ]}
+              activeOpacity={0.7}
+              onPress={() => onSelect(customer)}
+            >
+              <View style={styles.customerCardContent}>
+                <Ionicons
+                  name="person-outline"
+                  size={theme.iconSize.medium}
+                  color={colors.primary}
+                />
+                <Text style={[styles.customerCardText, { color: colors.text }]}>
+                  {customer.name}
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={theme.iconSize.medium}
+                color={colors.textTertiary}
+              />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+    </>
+  );
 }
 
 export default function StartScreen({ onStartPress, onSettingsPress, refreshKey }: StartScreenProps) {
@@ -107,97 +230,16 @@ export default function StartScreen({ onStartPress, onSettingsPress, refreshKey 
 
       <View style={styles.customerSection}>
         {customers.length === 0 ? (
-          <TouchableOpacity
-            style={styles.emptyCustomerState}
-            onPress={handleImportCustomers}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="people-outline" size={60} color={colors.textTertiary} />
-            <Text style={[styles.emptyCustomerText, { color: colors.textSecondary }]}>
-              {t.startScreen.noCustomers}
-            </Text>
-            <Text style={[styles.emptyCustomerSubtext, { color: colors.textTertiary }]}>
-              {t.startScreen.importCustomersHint}
-            </Text>
-          </TouchableOpacity>
+          <EmptyCustomersView colors={colors} t={t} onImport={handleImportCustomers} />
         ) : (
-          <>
-            <View
-              style={[
-                styles.searchContainer,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <Ionicons
-                name="search"
-                size={theme.iconSize.small}
-                color={colors.textSecondary}
-                style={styles.searchIcon}
-              />
-              <TextInput
-                style={[styles.searchInput, { color: colors.text }]}
-                placeholder={t.startScreen.searchCustomers}
-                value={customerSearch}
-                onChangeText={setCustomerSearch}
-                placeholderTextColor={colors.textTertiary}
-              />
-              {customerSearch.length > 0 && (
-                <TouchableOpacity onPress={() => setCustomerSearch('')} style={styles.clearButton}>
-                  <Ionicons
-                    name="close-circle"
-                    size={theme.iconSize.small}
-                    color={colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {filteredCustomers.length === 0 ? (
-              <View style={styles.noResultsContainer}>
-                <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
-                  {t.startScreen.noCustomersFound}
-                </Text>
-              </View>
-            ) : (
-              <ScrollView
-                style={styles.customerScrollView}
-                contentContainerStyle={styles.customerScrollContent}
-                showsVerticalScrollIndicator={true}
-              >
-                {filteredCustomers.map((customer) => (
-                  <TouchableOpacity
-                    key={customer.id}
-                    style={[
-                      styles.customerCard,
-                      {
-                        backgroundColor: colors.surface,
-                        borderColor: colors.border,
-                        ...theme.elevation.low,
-                      },
-                    ]}
-                    activeOpacity={0.7}
-                    onPress={() => handleCustomerSelect(customer)}
-                  >
-                    <View style={styles.customerCardContent}>
-                      <Ionicons
-                        name="person-outline"
-                        size={theme.iconSize.medium}
-                        color={colors.primary}
-                      />
-                      <Text style={[styles.customerCardText, { color: colors.text }]}>
-                        {customer.name}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={theme.iconSize.medium}
-                      color={colors.textTertiary}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-          </>
+          <CustomerListView
+            colors={colors}
+            t={t}
+            customerSearch={customerSearch}
+            setCustomerSearch={setCustomerSearch}
+            filteredCustomers={filteredCustomers}
+            onSelect={handleCustomerSelect}
+          />
         )}
       </View>
 

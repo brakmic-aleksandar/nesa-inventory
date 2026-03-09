@@ -42,6 +42,171 @@ interface ItemCardProps {
   onSetQuantity: (quantity: number) => void;
 }
 
+function StandImageSection({
+  item,
+  colors,
+}: {
+  item: ItemCardProps['item'];
+  colors: ItemCardColors;
+}) {
+  return item.image !== 'placeholder' ? (
+    <Image
+      source={{ uri: item.image }}
+      style={[styles.standImage, { backgroundColor: colors.surfaceSecondary }]}
+      contentFit="cover"
+      cachePolicy="memory-disk"
+      transition={TIMING.IMAGE_TRANSITION}
+      recyclingKey={String(item.id)}
+    />
+  ) : (
+    <View
+      style={[
+        styles.standImage,
+        {
+          backgroundColor: colors.surfaceSecondary,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+      ]}
+    >
+      <Ionicons name="image-outline" size={120} color={colors.placeholderIcon} />
+    </View>
+  );
+}
+
+function ShelfImageSection({
+  item,
+  colors,
+  imageHeight,
+}: {
+  item: ItemCardProps['item'];
+  colors: ItemCardColors;
+  imageHeight: number;
+}) {
+  return (
+    <View
+      style={[
+        styles.shelfImage,
+        {
+          backgroundColor: colors.surfaceSecondary,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+      ]}
+    >
+      {item.image !== 'placeholder' ? (
+        <Image
+          source={{ uri: item.image }}
+          style={{ width: '100%', height: imageHeight }}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={TIMING.IMAGE_TRANSITION}
+          recyclingKey={String(item.id)}
+        />
+      ) : (
+        <Ionicons name="image-outline" size={160} color={colors.placeholderIcon} />
+      )}
+    </View>
+  );
+}
+
+function QuantityInput({
+  inputRef,
+  inputValue,
+  setInputValue,
+  onSubmit,
+  colors,
+}: {
+  inputRef: React.RefObject<TextInput | null>;
+  inputValue: string;
+  setInputValue: (value: string) => void;
+  onSubmit: () => void;
+  colors: ItemCardColors;
+}) {
+  return (
+    <View style={[styles.quantityInputContainer, { backgroundColor: colors.surfaceSecondary }]}>
+      <TextInput
+        ref={inputRef}
+        style={[styles.quantityInput, { color: colors.text, borderColor: colors.border }]}
+        value={inputValue}
+        onChangeText={(text) => setInputValue(text.replace(/[^0-9]/g, ''))}
+        keyboardType="number-pad"
+        returnKeyType="done"
+        selectTextOnFocus
+        onSubmitEditing={onSubmit}
+        onBlur={onSubmit}
+        maxLength={5}
+      />
+      <TouchableOpacity
+        style={[styles.quantitySubmitButton, { backgroundColor: colors.primary }]}
+        onPress={onSubmit}
+      >
+        <Ionicons name="checkmark" size={theme.iconSize.small} color={colors.textOnColor} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function QuantityControls({
+  quantity,
+  scaleAnim,
+  colors,
+  onDecrease,
+  onDecreasePressIn,
+  onDecreasePressOut,
+  onIncrease,
+  onIncreasePressIn,
+  onIncreasePressOut,
+  onOpenInput,
+}: {
+  quantity: number;
+  scaleAnim: Animated.Value;
+  colors: ItemCardColors;
+  onDecrease: () => void;
+  onDecreasePressIn: () => void;
+  onDecreasePressOut: () => void;
+  onIncrease: () => void;
+  onIncreasePressIn: () => void;
+  onIncreasePressOut: () => void;
+  onOpenInput: () => void;
+}) {
+  return (
+    <View style={styles.quantityRow}>
+      <TouchableOpacity
+        style={[styles.minusButton, { backgroundColor: colors.primary }]}
+        onPress={onDecrease}
+        onPressIn={onDecreasePressIn}
+        onPressOut={onDecreasePressOut}
+        delayLongPress={500}
+      >
+        <Ionicons name="remove" size={theme.iconSize.medium} color={colors.textOnColor} />
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.quantityDisplay} onPress={onOpenInput}>
+        <Animated.Text
+          style={[
+            styles.quantityText,
+            { color: colors.text },
+            { transform: [{ scale: scaleAnim }] },
+          ]}
+        >
+          {quantity}
+        </Animated.Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.plusButton, { backgroundColor: colors.primary }]}
+        onPress={onIncrease}
+        onPressIn={onIncreasePressIn}
+        onPressOut={onIncreasePressOut}
+        delayLongPress={500}
+      >
+        <Ionicons name="add" size={theme.iconSize.medium} color={colors.textOnColor} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function ItemCardComponent({
   item,
   colors,
@@ -97,53 +262,9 @@ function ItemCardComponent({
         <TouchableOpacity activeOpacity={0.85} style={isStand ? styles.triggerArea : undefined}>
           <View style={styles.zoomSource}>
             {isStand ? (
-              item.image !== 'placeholder' ? (
-                <Image
-                  source={{ uri: item.image }}
-                  style={[styles.standImage, { backgroundColor: colors.surfaceSecondary }]}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                  transition={TIMING.IMAGE_TRANSITION}
-                  recyclingKey={String(item.id)}
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.standImage,
-                    {
-                      backgroundColor: colors.surfaceSecondary,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    },
-                  ]}
-                >
-                  <Ionicons name="image-outline" size={120} color={colors.placeholderIcon} />
-                </View>
-              )
+              <StandImageSection item={item} colors={colors} />
             ) : (
-              <View
-                style={[
-                  styles.shelfImage,
-                  {
-                    backgroundColor: colors.surfaceSecondary,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  },
-                ]}
-              >
-                {item.image !== 'placeholder' ? (
-                  <Image
-                    source={{ uri: item.image }}
-                    style={{ width: '100%', height: imageHeight }}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                    transition={TIMING.IMAGE_TRANSITION}
-                    recyclingKey={String(item.id)}
-                  />
-                ) : (
-                  <Ionicons name="image-outline" size={160} color={colors.placeholderIcon} />
-                )}
-              </View>
+              <ShelfImageSection item={item} colors={colors} imageHeight={imageHeight} />
             )}
           </View>
         </TouchableOpacity>
@@ -154,60 +275,26 @@ function ItemCardComponent({
       </Text>
 
       {showQuantityInput ? (
-        <View style={[styles.quantityInputContainer, { backgroundColor: colors.surfaceSecondary }]}>
-          <TextInput
-            ref={inputRef}
-            style={[styles.quantityInput, { color: colors.text, borderColor: colors.border }]}
-            value={inputValue}
-            onChangeText={(text) => setInputValue(text.replace(/[^0-9]/g, ''))}
-            keyboardType="number-pad"
-            returnKeyType="done"
-            selectTextOnFocus
-            onSubmitEditing={handleSubmitQuantity}
-            onBlur={handleSubmitQuantity}
-            maxLength={5}
-          />
-          <TouchableOpacity
-            style={[styles.quantitySubmitButton, { backgroundColor: colors.primary }]}
-            onPress={handleSubmitQuantity}
-          >
-            <Ionicons name="checkmark" size={theme.iconSize.small} color={colors.textOnColor} />
-          </TouchableOpacity>
-        </View>
+        <QuantityInput
+          inputRef={inputRef}
+          inputValue={inputValue}
+          setInputValue={setInputValue}
+          onSubmit={handleSubmitQuantity}
+          colors={colors}
+        />
       ) : (
-        <View style={styles.quantityRow}>
-          <TouchableOpacity
-            style={[styles.minusButton, { backgroundColor: colors.primary }]}
-            onPress={onDecrease}
-            onPressIn={onDecreasePressIn}
-            onPressOut={onDecreasePressOut}
-            delayLongPress={500}
-          >
-            <Ionicons name="remove" size={theme.iconSize.medium} color={colors.textOnColor} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.quantityDisplay} onPress={handleOpenInput}>
-            <Animated.Text
-              style={[
-                styles.quantityText,
-                { color: colors.text },
-                { transform: [{ scale: scaleAnim }] },
-              ]}
-            >
-              {item.quantity}
-            </Animated.Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.plusButton, { backgroundColor: colors.primary }]}
-            onPress={onIncrease}
-            onPressIn={onIncreasePressIn}
-            onPressOut={onIncreasePressOut}
-            delayLongPress={500}
-          >
-            <Ionicons name="add" size={theme.iconSize.medium} color={colors.textOnColor} />
-          </TouchableOpacity>
-        </View>
+        <QuantityControls
+          quantity={item.quantity}
+          scaleAnim={scaleAnim}
+          colors={colors}
+          onDecrease={onDecrease}
+          onDecreasePressIn={onDecreasePressIn}
+          onDecreasePressOut={onDecreasePressOut}
+          onIncrease={onIncrease}
+          onIncreasePressIn={onIncreasePressIn}
+          onIncreasePressOut={onIncreasePressOut}
+          onOpenInput={handleOpenInput}
+        />
       )}
     </View>
   );

@@ -14,6 +14,23 @@ import { db } from '../database/DatabaseService';
 import { translations } from '../localization';
 import { Settings } from '../models/Settings';
 
+function LoadingScreen({ text }: { text: string }) {
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={theme.light.primary} />
+      <Text style={styles.loadingText}>{text}</Text>
+    </View>
+  );
+}
+
+function DbErrorScreen() {
+  return (
+    <View style={styles.loadingContainer}>
+      <Text style={styles.errorText}>Failed to initialize database</Text>
+    </View>
+  );
+}
+
 export default function RootLayout() {
   const [isDbReady, setIsDbReady] = useState(false);
   const [dbError, setDbError] = useState(false);
@@ -50,20 +67,11 @@ export default function RootLayout() {
   }, []);
 
   if (!isDbReady) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.light.primary} />
-        <Text style={styles.loadingText}>{loadingText}</Text>
-      </View>
-    );
+    return <LoadingScreen text={loadingText} />;
   }
 
   if (dbError) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Failed to initialize database</Text>
-      </View>
-    );
+    return <DbErrorScreen />;
   }
 
   return (

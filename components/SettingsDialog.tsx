@@ -27,6 +27,170 @@ import { languages } from '../localization';
 import { Settings } from '../models/Settings';
 import { excelImport } from '../services/ExcelImportService';
 
+interface SettingsFormColors {
+  text: string;
+  textSecondary: string;
+  textTertiary: string;
+  textOnColor: string;
+  border: string;
+  surface: string;
+  surfaceSecondary: string;
+  primary: string;
+  primaryLight: string;
+  success: string;
+  warning: string;
+  switchTrackOff: string;
+}
+
+function SettingsForm({
+  colors,
+  t,
+  language,
+  isDark,
+  destinationEmail,
+  setLanguage,
+  toggleColorScheme,
+  setDestinationEmail,
+  onImport,
+  onGenerateExamples,
+  onClose,
+}: {
+  colors: SettingsFormColors;
+  t: ReturnType<typeof useLanguage>['t'];
+  language: string;
+  isDark: boolean;
+  destinationEmail: string;
+  setLanguage: (code: string) => void;
+  toggleColorScheme: () => void;
+  setDestinationEmail: (value: string) => void;
+  onImport: () => void;
+  onGenerateExamples: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.modalTitle, { color: colors.text }]}>
+          {t.settings.title}
+        </Text>
+        <Pressable onPress={onClose}>
+          <Ionicons name="close" size={28} color={colors.textSecondary} />
+        </Pressable>
+      </View>
+
+      <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
+        <View style={[styles.settingsSection, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            {t.settings.language}
+          </Text>
+          <View style={styles.languageContainer}>
+            {languages.map((lang) => (
+              <Pressable
+                key={lang.code}
+                style={[
+                  styles.languageButton,
+                  {
+                    backgroundColor: colors.surfaceSecondary,
+                    borderColor: language === lang.code ? colors.primary : 'transparent',
+                  },
+                  language === lang.code && {
+                    backgroundColor: colors.primaryLight,
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => setLanguage(lang.code)}
+              >
+                <Text
+                  style={[
+                    styles.languageButtonText,
+                    {
+                      color:
+                        language === lang.code ? colors.primary : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  {lang.name}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingLabelContainer}>
+              <Ionicons
+                name={isDark ? 'moon' : 'sunny'}
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.settingLabel, { color: colors.text }]}>
+                {t.settings.darkMode}
+              </Text>
+            </View>
+            <Switch
+              value={isDark}
+              onValueChange={toggleColorScheme}
+              trackColor={{ false: colors.switchTrackOff, true: colors.success }}
+              thumbColor={colors.textOnColor}
+            />
+          </View>
+
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            {t.settings.email}
+          </Text>
+          <TextInput
+            style={[
+              styles.settingsInput,
+              {
+                backgroundColor: colors.surfaceSecondary,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
+            placeholder={t.settings.emailPlaceholder}
+            placeholderTextColor={colors.textTertiary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            value={destinationEmail}
+            onChangeText={setDestinationEmail}
+          />
+
+          <Pressable
+            style={[styles.importButton, { backgroundColor: colors.success }]}
+            onPress={onImport}
+          >
+            <Ionicons name="cloud-download-outline" size={24} color={colors.textOnColor} />
+            <Text style={[styles.importButtonText, { color: colors.textOnColor }]}>
+              {t.settings.importData}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.exportButton, { backgroundColor: colors.warning }]}
+            onPress={onGenerateExamples}
+          >
+            <Ionicons name="document-text-outline" size={24} color={colors.textOnColor} />
+            <Text style={[styles.exportButtonText, { color: colors.textOnColor }]}>
+              {t.settings.exportExamples}
+            </Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+
+      <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
+        <Pressable
+          style={[styles.closeButton, { backgroundColor: colors.primary }]}
+          onPress={onClose}
+        >
+          <Text style={[styles.closeButtonText, { color: colors.textOnColor }]}>
+            {t.settings.close}
+          </Text>
+        </Pressable>
+      </View>
+    </>
+  );
+}
+
 interface SettingsDialogProps {
   onClose: (hasImportedData: boolean) => void | Promise<void>;
 }
@@ -195,126 +359,19 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                 },
               ]}
             >
-              <>
-                <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>
-                    {t.settings.title}
-                  </Text>
-                  <Pressable onPress={closeWithSave}>
-                    <Ionicons name="close" size={28} color={colors.textSecondary} />
-                  </Pressable>
-                </View>
-
-                <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
-                  <View style={[styles.settingsSection, { borderBottomColor: colors.border }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                      {t.settings.language}
-                    </Text>
-                    <View style={styles.languageContainer}>
-                      {languages.map((lang) => (
-                        <Pressable
-                          key={lang.code}
-                          style={[
-                            styles.languageButton,
-                            {
-                              backgroundColor: colors.surfaceSecondary,
-                              borderColor: language === lang.code ? colors.primary : 'transparent',
-                            },
-                            language === lang.code && {
-                              backgroundColor: colors.primaryLight,
-                              borderColor: colors.primary,
-                            },
-                          ]}
-                          onPress={() => setLanguage(lang.code)}
-                        >
-                          <Text
-                            style={[
-                              styles.languageButtonText,
-                              {
-                                color:
-                                  language === lang.code ? colors.primary : colors.textSecondary,
-                              },
-                            ]}
-                          >
-                            {lang.name}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-
-                    <View style={styles.settingRow}>
-                      <View style={styles.settingLabelContainer}>
-                        <Ionicons
-                          name={isDark ? 'moon' : 'sunny'}
-                          size={20}
-                          color={colors.primary}
-                        />
-                        <Text style={[styles.settingLabel, { color: colors.text }]}>
-                          {t.settings.darkMode}
-                        </Text>
-                      </View>
-                      <Switch
-                        value={isDark}
-                        onValueChange={toggleColorScheme}
-                        trackColor={{ false: colors.switchTrackOff, true: colors.success }}
-                        thumbColor={colors.textOnColor}
-                      />
-                    </View>
-
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                      {t.settings.email}
-                    </Text>
-                    <TextInput
-                      style={[
-                        styles.settingsInput,
-                        {
-                          backgroundColor: colors.surfaceSecondary,
-                          borderColor: colors.border,
-                          color: colors.text,
-                        },
-                      ]}
-                      placeholder={t.settings.emailPlaceholder}
-                      placeholderTextColor={colors.textTertiary}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      keyboardType="email-address"
-                      value={destinationEmail}
-                      onChangeText={setDestinationEmail}
-                    />
-
-                    <Pressable
-                      style={[styles.importButton, { backgroundColor: colors.success }]}
-                      onPress={handleImportData}
-                    >
-                      <Ionicons name="cloud-download-outline" size={24} color={colors.textOnColor} />
-                      <Text style={[styles.importButtonText, { color: colors.textOnColor }]}>
-                        {t.settings.importData}
-                      </Text>
-                    </Pressable>
-
-                    <Pressable
-                      style={[styles.exportButton, { backgroundColor: colors.warning }]}
-                      onPress={handleGenerateExamples}
-                    >
-                      <Ionicons name="document-text-outline" size={24} color={colors.textOnColor} />
-                      <Text style={[styles.exportButtonText, { color: colors.textOnColor }]}>
-                        {t.settings.exportExamples}
-                      </Text>
-                    </Pressable>
-                  </View>
-                </ScrollView>
-
-                <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
-                  <Pressable
-                    style={[styles.closeButton, { backgroundColor: colors.primary }]}
-                    onPress={closeWithSave}
-                  >
-                    <Text style={[styles.closeButtonText, { color: colors.textOnColor }]}>
-                      {t.settings.close}
-                    </Text>
-                  </Pressable>
-                </View>
-              </>
+              <SettingsForm
+                colors={colors}
+                t={t}
+                language={language}
+                isDark={isDark}
+                destinationEmail={destinationEmail}
+                setLanguage={setLanguage}
+                toggleColorScheme={toggleColorScheme}
+                setDestinationEmail={setDestinationEmail}
+                onImport={handleImportData}
+                onGenerateExamples={handleGenerateExamples}
+                onClose={closeWithSave}
+              />
             </Animated.View>
           </KeyboardAvoidingView>
         )}

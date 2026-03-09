@@ -33,6 +33,21 @@ interface Article {
   image: string;
 }
 
+function ShelfLoadingSkeleton() {
+  return (
+    <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.gridContainer}>
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </View>
+    </ScrollView>
+  );
+}
+
 export default function ShelfScreen() {
   const { t } = useLanguage();
   const { colors, isDark } = useTheme();
@@ -334,18 +349,8 @@ export default function ShelfScreen() {
         </Text>
       </View>
 
-      {/* Grid Content */}
       {loading ? (
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          <View style={styles.gridContainer}>
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-          </View>
-        </ScrollView>
+        <ShelfLoadingSkeleton />
       ) : filteredArticles.length === 0 && searchQuery.length === 0 ? (
         <EmptyState
           icon="cube-outline"
