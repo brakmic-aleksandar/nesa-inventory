@@ -1,9 +1,10 @@
-import { TouchableOpacity, Text, StyleSheet, Animated } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef } from 'react';
+import { Animated, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
-import { useTheme } from '../contexts/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
+
 import { theme } from '../constants/theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface FloatingActionButtonProps {
   onPress: () => void;

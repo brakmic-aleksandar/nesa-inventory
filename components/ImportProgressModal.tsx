@@ -2,11 +2,11 @@ import { ActivityIndicator, Modal, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../contexts/ThemeContext';
 
-type ImportProgressModalProps = {
+interface ImportProgressModalProps {
   visible: boolean;
   message: string;
   useModal?: boolean;
-};
+}
 
 export function ImportProgressModal({
   visible,

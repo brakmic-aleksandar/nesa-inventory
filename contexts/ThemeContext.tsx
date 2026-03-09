@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { STORAGE_KEYS } from '../constants';
 import { theme } from '../constants/theme';
 
 type ColorScheme = 'light' | 'dark';
@@ -13,8 +16,6 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_STORAGE_KEY = '@app_color_scheme';
-
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [colorScheme, setColorScheme] = useState<ColorScheme>('light');
 
@@ -24,7 +25,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const loadColorScheme = async () => {
     try {
-      const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+      const saved = await AsyncStorage.getItem(STORAGE_KEYS.THEME);
       if (saved === 'dark' || saved === 'light') {
         setColorScheme(saved);
       }
@@ -37,7 +38,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const newScheme = colorScheme === 'light' ? 'dark' : 'light';
     setColorScheme(newScheme);
     try {
-      await AsyncStorage.setItem(THEME_STORAGE_KEY, newScheme);
+      await AsyncStorage.setItem(STORAGE_KEYS.THEME, newScheme);
     } catch (error) {
       console.error('Failed to save color scheme:', error);
     }

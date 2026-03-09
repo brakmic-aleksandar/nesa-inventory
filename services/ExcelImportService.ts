@@ -61,11 +61,6 @@ class ImageAssigner {
     }
 
     this.debugLoggedCount += 1;
-    console.log('[ImageMapDebug]', {
-      excelRow,
-      source,
-      path,
-    });
   }
 
   get(excelRow: number): string | null {
@@ -90,18 +85,10 @@ class ImageAssigner {
 export async function checkImportedFile(): Promise<boolean> {
   try {
     const { bookmark, modDate, fileSize } = await Settings.loadImportedFileBookmark();
-    console.log('[BookmarkCheck] Saved metadata', {
-      hasBookmark: Boolean(bookmark),
-      bookmarkLength: bookmark?.length ?? 0,
-      savedModDate: modDate,
-      savedFileSize: fileSize,
-    });
-
     if (!bookmark) {
       return false;
     }
     const filePath = await resolveBookmark(bookmark);
-    console.log('Resolved file path from bookmark:', filePath);
     if (!filePath) {
       await Settings.clearImportedFileBookmark();
       return true;
@@ -122,18 +109,10 @@ export async function checkImportedFile(): Promise<boolean> {
       fileInfo.exists && 'size' in fileInfo && typeof fileInfo.size === 'number'
         ? Number(fileInfo.size)
         : null;
-    console.log('[BookmarkCheck] Current file metadata', {
-      resolvedPath: filePath,
-      fileExists: fileInfo.exists,
-      currentModDate: newModDate,
-      currentFileSize: newFileSize,
-    });
-
     const changedByModDate = modDate !== null && newModDate > 0 && newModDate !== modDate;
     const changedBySize = fileSize !== null && newFileSize !== null && newFileSize !== fileSize;
 
     if (changedByModDate || changedBySize) {
-      console.log('Imported file has changed since last import');
       return true;
     }
 
@@ -749,12 +728,6 @@ export class ExcelImportService {
       unanchored: Array.isArray(response?.unanchored) ? response.unanchored : [],
     };
 
-    console.log('[Import][ExtractSheetImages]', {
-      sheetName,
-      anchoredCount: Object.keys(normalized.anchored).length,
-      unanchoredCount: normalized.unanchored.length,
-    });
-
     return normalized;
   }
 
@@ -966,7 +939,6 @@ export class ExcelImportService {
 
       const xlsxPath = this.toLocalPath(fileForImport.uri);
 
-      console.log('Selected file:', fileForImport);
       const isExcel = fileForImport.name.toLowerCase().endsWith('.xlsx');
 
       if (!isExcel) {
@@ -994,15 +966,12 @@ export class ExcelImportService {
 
       // --- BEGIN TRANSACTION ---
       this.emitProgress('startingDatabaseTransaction');
-      await db.execRawSQL('BEGIN TRANSACTION');
+      await db.beginTransaction();
       try {
         this.emitProgress('clearingExistingData');
-        console.log('[Import] Clearing existing data...');
         await db.clearAllData();
-        console.log('[Import] Data cleared successfully');
 
         this.emitProgress('importingStandItems');
-        console.log('[Import] Starting stand items import...');
         const standItemsResult = await this.importStandItemsWithStands(
           xlsxPath,
           resolvedSheets.standItemsSheet,
@@ -1011,12 +980,8 @@ export class ExcelImportService {
         if (!standItemsResult.success) throw new Error(standItemsResult.message);
         const standItemsCount = standItemsResult.itemCount || 0;
         const standsCreated = standItemsResult.standsCount || 0;
-        console.log(
-          `[Import] Stand items imported: ${standItemsCount}, stands created: ${standsCreated}`
-        );
 
         this.emitProgress('importingShelfItems');
-        console.log('[Import] Starting shelf items import...');
         const shelfItemsResult = await this.importShelfItems(
           xlsxPath,
           resolvedSheets.shelfItemsSheet,
@@ -1024,42 +989,29 @@ export class ExcelImportService {
         );
         if (!shelfItemsResult.success) throw new Error(shelfItemsResult.message);
         const shelfItemsCount = shelfItemsResult.itemCount || 0;
-        console.log(`[Import] Shelf items imported: ${shelfItemsCount}`);
 
         this.emitProgress('importingCustomers');
-        console.log('[Import] Starting customers import...');
         const customersResult = await this.importCustomers(xlsxPath, resolvedSheets.customersSheet);
         if (!customersResult.success) throw new Error(customersResult.message);
         const customersCount = customersResult.itemCount || 0;
-        console.log(`[Import] Customers imported: ${customersCount}`);
 
         if (resolvedSheets.standConfigurationSheet) {
-          console.log('[Import] Starting stand configuration import...');
           const standConfigResult = await this.importStandConfiguration(
             xlsxPath,
             resolvedSheets.standConfigurationSheet
           );
           if (!standConfigResult.success) throw new Error(standConfigResult.message);
-          console.log(`[Import] Stand configuration imported: ${standConfigResult.itemCount || 0}`);
         }
 
         this.emitProgress('finalizingImport');
-        console.log('[Import] Finalizing...');
 
-        await db.execRawSQL('COMMIT');
+        await db.commitTransaction();
         await this.deleteBackupImages(imageBackup);
         imageBackup = null;
 
         // Save bookmark and mod date for imported file
         try {
           const bookmarkPath = this.toLocalPath(selectedFile.sourcePath ?? selectedFile.uri);
-          if (this.isLikelyTemporaryImportPath(bookmarkPath)) {
-            console.log(
-              'Attempting bookmark metadata update for temporary picker path:',
-              bookmarkPath
-            );
-          }
-
           const bookmark = selectedFile.bookmark ?? (await createBookmark(bookmarkPath));
           if (!bookmark) {
             throw new Error('Failed to create bookmark for imported file');
@@ -1074,12 +1026,6 @@ export class ExcelImportService {
               ? Number(fileInfo.size)
               : null;
           await Settings.saveImportedFileBookmark(bookmark, modDate, fileSize);
-          console.log('Imported file bookmark metadata saved:', {
-            bookmarkLength: bookmark.length,
-            path: bookmarkPath,
-            modDate,
-            fileSize,
-          });
         } catch (bookmarkError) {
           console.error('Failed to bookmark imported file:', bookmarkError);
         }
@@ -1093,7 +1039,6 @@ export class ExcelImportService {
           .filter(Boolean)
           .join(', ');
 
-        console.log('[Import] Import completed successfully:', message);
         return {
           success: true,
           stats: {
@@ -1104,11 +1049,11 @@ export class ExcelImportService {
           },
         };
       } catch (error) {
-        await db.execRawSQL('ROLLBACK');
+        console.error('[Import] Import error, rolled back:', error);
+        await db.rollbackTransaction();
         if (includeImages) {
           await this.restoreBackedUpImages(imageBackup);
         }
-        console.error('[Import] Import error, rolled back:', error);
         return {
           success: false,
           reason: 'import_failed',
@@ -1116,10 +1061,10 @@ export class ExcelImportService {
         };
       }
     } catch (outerError) {
+      console.error('[Import] Unexpected error:', outerError);
       if (includeImages) {
         await this.restoreBackedUpImages(imageBackup);
       }
-      console.error('[Import] Unexpected error:', outerError);
       const message =
         outerError instanceof Error
           ? outerError.message
@@ -1158,7 +1103,6 @@ export class ExcelImportService {
       let standColumnIndex: Record<StandColumnKey, number> = { ...STAND_COL_INDEX };
 
       await this.readSheetRows(xlsxPath, sheetName, (row, excelRow) => {
-        console.log(`[Import] Processing stand item row ${excelRow} for stand discovery...`);
         if (excelRow === 1) {
           const resolved = this.resolveHeaderIndexes(row, STAND_HEADER_ALIASES, STAND_COL_INDEX);
           standColumnIndex = resolved.indexes;
@@ -1190,9 +1134,7 @@ export class ExcelImportService {
       }
 
       if (policaItemsSkipped > 0) {
-        console.warn(
-          `⚠️  Skipped ${policaItemsSkipped} 'Polica' items from Stand Items sheet. These should be in Sheet 2 (Shelf Items).`
-        );
+        console.warn(`Skipped ${policaItemsSkipped} item(s) with stand name 'Polica'`);
       }
 
       // Create stands for unique names
@@ -1584,8 +1526,6 @@ export class ExcelImportService {
       const templateFile = new File(exportDir, 'inventory_import_template.xlsx');
       templateFile.write(base64, { encoding: 'base64' });
       const templatePath = templateFile.uri;
-
-      console.log('Empty template generated:', templatePath);
 
       return {
         success: true,

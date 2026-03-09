@@ -1,18 +1,20 @@
+import { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { Ionicons } from '@expo/vector-icons';
-import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useRef } from 'react';
 import { useNavigation } from 'expo-router';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { StatusBar } from 'expo-status-bar';
+
+import { SHELF_SOURCE_ID } from '../constants';
 import { theme } from '../constants/theme';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useOrder } from '../contexts/OrderContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { db } from '../database/DatabaseService';
 import { Stand } from '../database/schema';
-import { SHELF_SOURCE_ID } from '../constants';
 
-interface CardScreenProps {
+interface SelectionScreenProps {
   inputText: string;
   onBackPress: () => void;
   onCardPress: (cardTitle: string, cardIndex: number) => void;
@@ -25,13 +27,13 @@ interface CardData {
   subtitle: string;
 }
 
-export default function CardScreen({
+export default function SelectionScreen({
   inputText,
   onBackPress,
   onCardPress,
   onShowSummary,
   refreshKey,
-}: CardScreenProps) {
+}: SelectionScreenProps) {
   const { t } = useLanguage();
   const { colors, isDark } = useTheme();
   const { getAllItems, clearAll } = useOrder();
@@ -168,7 +170,7 @@ export default function CardScreen({
           onPress={handleSendOrder}
         >
           <Ionicons name="send" size={theme.iconSize.medium} color={colors.textOnColor} />
-          <Text style={styles.sendOrderButtonText}>{t.selectionScreen.sendOrder}</Text>
+          <Text style={[styles.sendOrderButtonText, { color: colors.textOnColor }]}>{t.selectionScreen.sendOrder}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -242,6 +244,5 @@ const styles = StyleSheet.create({
   },
   sendOrderButtonText: {
     ...theme.typography.h4,
-    color: theme.light.textOnColor,
   },
 });

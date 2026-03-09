@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+
+import { DEFAULT_LANGUAGE } from '../constants';
 import { translations, Translations } from '../localization';
 import { Settings } from '../models/Settings';
 
@@ -11,10 +13,9 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState('es');
+  const [language, setLanguageState] = useState(DEFAULT_LANGUAGE);
 
   useEffect(() => {
-    // Load saved language preference
     loadLanguage();
   }, []);
 

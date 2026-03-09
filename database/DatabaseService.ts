@@ -2,15 +2,24 @@ import * as SQLite from 'expo-sqlite';
 import { CREATE_TABLES_SQL, Stand, StandItem, ShelfItem, Customer } from './schema';
 
 class DatabaseService {
-  /**
-   * Execute a raw SQL statement (e.g., for BEGIN/COMMIT/ROLLBACK TRANSACTION).
-   * Use with caution! Only for transaction control or special cases.
-   */
-  public async execRawSQL(sql: string): Promise<void> {
+  private db: SQLite.SQLiteDatabase | null = null;
+
+  private async execRawSQL(sql: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
     await this.db.execAsync(sql);
   }
-  private db: SQLite.SQLiteDatabase | null = null;
+
+  async beginTransaction(): Promise<void> {
+    await this.execRawSQL('BEGIN TRANSACTION');
+  }
+
+  async commitTransaction(): Promise<void> {
+    await this.execRawSQL('COMMIT');
+  }
+
+  async rollbackTransaction(): Promise<void> {
+    await this.execRawSQL('ROLLBACK');
+  }
   private readonly DB_VERSION = 5; // Increment this when schema changes
 
   async init(): Promise<void> {
@@ -51,8 +60,6 @@ class DatabaseService {
     );
     const currentVersion = versionResult.length > 0 ? versionResult[0].version : 0;
 
-    console.log(`Database version: ${currentVersion}, Target version: ${this.DB_VERSION}`);
-
     // Run migrations if needed
     if (currentVersion < this.DB_VERSION) {
       await this.migrate(currentVersion);
@@ -62,12 +69,8 @@ class DatabaseService {
   private async migrate(fromVersion: number): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
-    console.log(`Running migrations from version ${fromVersion} to ${this.DB_VERSION}`);
-
     // Migration from version 0 to 1: Add missing columns if they don't exist
     if (fromVersion < 1) {
-      console.log('Running migration: Adding color_number, item_code, image_path to stand_items');
-
       // Check if columns exist
       const tableInfo = await this.db.getAllAsync<any>('PRAGMA table_info(stand_items)');
       const columnNames = tableInfo.map((col: any) => col.name);
@@ -85,14 +88,11 @@ class DatabaseService {
 
     // Migration from version 1 to 2: Ensure customers table exists
     if (fromVersion < 2) {
-      console.log('Running migration: Ensuring customers table exists');
       // Table is created by CREATE_TABLES_SQL with IF NOT EXISTS, so this is safe
     }
 
     // Migration from version 2 to 3: Add color_order column
     if (fromVersion < 3) {
-      console.log('Running migration: Adding color_order to stand_items');
-
       const tableInfo = await this.db.getAllAsync<any>('PRAGMA table_info(stand_items)');
       const columnNames = tableInfo.map((col: any) => col.name);
 
@@ -103,21 +103,16 @@ class DatabaseService {
 
     // Migration from version 3 to 4: Ensure color_order exists (for databases that skipped migration)
     if (fromVersion < 4) {
-      console.log('Running migration: Verifying color_order column exists');
-
       const tableInfo = await this.db.getAllAsync<any>('PRAGMA table_info(stand_items)');
       const columnNames = tableInfo.map((col: any) => col.name);
 
       if (!columnNames.includes('color_order')) {
-        console.log('Adding missing color_order column');
         await this.db.execAsync('ALTER TABLE stand_items ADD COLUMN color_order INTEGER');
       }
     }
 
     // Migration from version 4 to 5: Add stand-level color header mode config
     if (fromVersion < 5) {
-      console.log('Running migration: Adding color_headers_mode to stands');
-
       const tableInfo = await this.db.getAllAsync<any>('PRAGMA table_info(stands)');
       const columnNames = tableInfo.map((col: any) => col.name);
 
@@ -134,8 +129,6 @@ class DatabaseService {
       1,
       this.DB_VERSION,
     ]);
-
-    console.log(`Migration complete. Database now at version ${this.DB_VERSION}`);
   }
 
   // Stand operations
@@ -195,10 +188,17 @@ class DatabaseService {
   // Import operations
   async clearAllData(): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
-    await this.db.runAsync('DELETE FROM stand_items');
-    await this.db.runAsync('DELETE FROM stands');
-    await this.db.runAsync('DELETE FROM shelf_items');
-    await this.db.runAsync('DELETE FROM customers');
+    await this.db.execAsync('SAVEPOINT clear_all');
+    try {
+      await this.db.runAsync('DELETE FROM stand_items');
+      await this.db.runAsync('DELETE FROM stands');
+      await this.db.runAsync('DELETE FROM shelf_items');
+      await this.db.runAsync('DELETE FROM customers');
+      await this.db.execAsync('RELEASE SAVEPOINT clear_all');
+    } catch (error) {
+      await this.db.execAsync('ROLLBACK TO SAVEPOINT clear_all');
+      throw error;
+    }
   }
 
   // Customer operations

@@ -1,7 +1,7 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
-import StartScreen from '../screens/StartScreen';
 import { useOrder } from '../contexts/OrderContext';
+import StartScreen from '../screens/StartScreen';
 
 export default function StartRoute() {
   const router = useRouter();

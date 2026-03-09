@@ -10,9 +10,7 @@ export type OpenInPlacePickResult = {
 
 export async function createBookmark(filePath: string): Promise<string | null> {
   try {
-    console.log('Bookmark creating:', filePath);
     const bookmark = await FileBookmarkModule.createBookmark(filePath);
-    console.log('Bookmark created:', bookmark);
     return bookmark;
   } catch (error) {
     console.error('Failed to create bookmark:', error);
@@ -22,9 +20,7 @@ export async function createBookmark(filePath: string): Promise<string | null> {
 
 export async function resolveBookmark(bookmark: string): Promise<string | null> {
   try {
-    console.log('Resolved file path:', bookmark);
     const filePath = await FileBookmarkModule.resolveBookmark(bookmark);
-    console.log('Resolved file path:', filePath);
     return filePath;
   } catch (error) {
     console.error('Failed to resolve bookmark:', error);

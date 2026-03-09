@@ -14,17 +14,18 @@ import {
   TextInput,
   View,
 } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
 
+import { theme } from '../constants/theme';
+import { ImportProgressModal } from './ImportProgressModal';
+import { Toast } from './Toast';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { theme } from '../constants/theme';
+import { useImportData } from '../hooks/useImportData';
 import { languages } from '../localization';
 import { Settings } from '../models/Settings';
 import { excelImport } from '../services/ExcelImportService';
-import { useImportData } from '../hooks/useImportData';
-import { ImportProgressModal } from './ImportProgressModal';
-import { Toast } from './Toast';
 
 interface SettingsDialogProps {
   onClose: (hasImportedData: boolean) => void | Promise<void>;

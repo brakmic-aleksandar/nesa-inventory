@@ -1,5 +1,5 @@
-import { View, StyleSheet, Animated } from 'react-native';
 import { useEffect, useRef } from 'react';
+import { Animated, StyleSheet, View } from 'react-native';
 
 import { theme } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';

@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,19 +8,21 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { useOrder } from '../contexts/OrderContext';
-import { theme } from '../constants/theme';
-import { db } from '../database/DatabaseService';
-import { SkeletonRow } from '../components/SkeletonLoader';
+
 import { EmptyState } from '../components/EmptyState';
 import { ItemCard } from '../components/ItemCard';
+import { SkeletonRow } from '../components/SkeletonLoader';
+import { LAYOUT, TIMING } from '../constants';
+import { theme } from '../constants/theme';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useOrder } from '../contexts/OrderContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { db } from '../database/DatabaseService';
 
-interface InventoryScreenProps {
+interface StandScreenProps {
   cardTitle: string;
 }
 
@@ -34,12 +37,12 @@ interface Item {
   colorOrder?: number | null;
 }
 
-const STAND_CARD_WIDTH = 180;
+const STAND_CARD_WIDTH = LAYOUT.STAND_CARD_WIDTH;
 const STAND_CARD_GAP = theme.spacing.md;
 const STAND_CARD_FULL_WIDTH = STAND_CARD_WIDTH + STAND_CARD_GAP;
-const STAND_ROW_HEIGHT = 270;
+const STAND_ROW_HEIGHT = LAYOUT.STAND_ROW_HEIGHT;
 
-export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
+export default function StandScreen({ cardTitle }: StandScreenProps) {
   const { t } = useLanguage();
   const { colors, isDark } = useTheme();
   const { getItems, setItems } = useOrder();
@@ -187,7 +190,7 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
         colorOrder: item.colorOrder ?? null,
       }));
       setItems(cardTitle, allItems);
-    }, 120);
+    }, TIMING.QUANTITY_SYNC_DEBOUNCE);
 
     return () => {
       if (syncItemsTimer.current) {
@@ -242,9 +245,9 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
         // Start rapid increment/decrement
         const interval = setInterval(() => {
           updateQuantity(rowIndex, itemId, delta);
-        }, 110);
+        }, TIMING.RAPID_INCREMENT_INTERVAL);
         longPressIntervals.current.set(key, interval);
-      }, 500);
+      }, TIMING.LONG_PRESS_DELAY);
 
       longPressTimers.current.set(key, timer);
     },
@@ -375,6 +378,11 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
       {/* Loading State */}
       {loading ? (
         <ScrollView style={styles.scrollView}>
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
           <SkeletonRow />
           <SkeletonRow />
           <SkeletonRow />

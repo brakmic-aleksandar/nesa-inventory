@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { useLanguage } from '../contexts/LanguageContext';
 import { ItemDetailsDialog } from '../components/ItemDetailsDialog';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function StandItemDetailsRoute() {
   const router = useRouter();

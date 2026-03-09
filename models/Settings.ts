@@ -1,87 +1,77 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export class Settings {
-  private static readonly LANGUAGE_KEY = '@settings_language';
-  private static readonly DESTINATION_EMAIL_KEY = '@settings_destination_email';
-  private static readonly BOOKMARK_KEY = '@settings_imported_bookmark';
-  private static readonly MODDATE_KEY = '@settings_imported_moddate';
-  private static readonly FILESIZE_KEY = '@settings_imported_filesize';
+import { DEFAULT_LANGUAGE, STORAGE_KEYS } from '../constants';
 
+export class Settings {
   language: string;
   destinationEmail: string;
 
-  constructor(language: string = 'es', destinationEmail: string = '') {
+  constructor(language: string = DEFAULT_LANGUAGE, destinationEmail: string = '') {
     this.language = language;
     this.destinationEmail = destinationEmail;
   }
 
-  // Load settings from AsyncStorage
   static async load(): Promise<Settings> {
     try {
-      const language = await AsyncStorage.getItem(Settings.LANGUAGE_KEY);
-      const destinationEmail = await AsyncStorage.getItem(Settings.DESTINATION_EMAIL_KEY);
+      const language = await AsyncStorage.getItem(STORAGE_KEYS.LANGUAGE);
+      const destinationEmail = await AsyncStorage.getItem(STORAGE_KEYS.DESTINATION_EMAIL);
 
-      return new Settings(language || 'es', destinationEmail || '');
+      return new Settings(language || DEFAULT_LANGUAGE, destinationEmail || '');
     } catch (error) {
       console.error('Error loading settings:', error);
       return new Settings();
     }
   }
 
-  // Save settings to AsyncStorage
   async save(): Promise<void> {
     try {
-      await AsyncStorage.setItem(Settings.LANGUAGE_KEY, this.language);
-      await AsyncStorage.setItem(Settings.DESTINATION_EMAIL_KEY, this.destinationEmail);
+      await AsyncStorage.setItem(STORAGE_KEYS.LANGUAGE, this.language);
+      await AsyncStorage.setItem(STORAGE_KEYS.DESTINATION_EMAIL, this.destinationEmail);
     } catch (error) {
       console.error('Error saving settings:', error);
     }
   }
 
-  // Save only language
   async saveLanguage(language: string): Promise<void> {
     this.language = language;
     try {
-      await AsyncStorage.setItem(Settings.LANGUAGE_KEY, language);
+      await AsyncStorage.setItem(STORAGE_KEYS.LANGUAGE, language);
     } catch (error) {
       console.error('Error saving language:', error);
     }
   }
 
-  // Save only destination email
   async saveDestinationEmail(destinationEmail: string): Promise<void> {
     this.destinationEmail = destinationEmail;
     try {
-      await AsyncStorage.setItem(Settings.DESTINATION_EMAIL_KEY, destinationEmail);
+      await AsyncStorage.setItem(STORAGE_KEYS.DESTINATION_EMAIL, destinationEmail);
     } catch (error) {
       console.error('Error saving destination email:', error);
     }
   }
 
-  // Clear all settings
   static async clear(): Promise<void> {
     try {
-      await AsyncStorage.removeItem(Settings.LANGUAGE_KEY);
-      await AsyncStorage.removeItem(Settings.DESTINATION_EMAIL_KEY);
+      await AsyncStorage.removeItem(STORAGE_KEYS.LANGUAGE);
+      await AsyncStorage.removeItem(STORAGE_KEYS.DESTINATION_EMAIL);
     } catch (error) {
       console.error('Error clearing settings:', error);
     }
   }
 
-  // Save bookmark and mod date
   static async saveImportedFileBookmark(
     bookmark: string,
     modDate: number,
     fileSize?: number | null
   ): Promise<void> {
     try {
-      await AsyncStorage.setItem(Settings.BOOKMARK_KEY, bookmark);
-      await AsyncStorage.setItem(Settings.MODDATE_KEY, String(modDate));
+      await AsyncStorage.setItem(STORAGE_KEYS.IMPORTED_BOOKMARK, bookmark);
+      await AsyncStorage.setItem(STORAGE_KEYS.IMPORTED_MODDATE, String(modDate));
       if (fileSize !== undefined) {
         if (fileSize === null) {
-          await AsyncStorage.removeItem(Settings.FILESIZE_KEY);
+          await AsyncStorage.removeItem(STORAGE_KEYS.IMPORTED_FILESIZE);
         } else {
-          await AsyncStorage.setItem(Settings.FILESIZE_KEY, String(fileSize));
+          await AsyncStorage.setItem(STORAGE_KEYS.IMPORTED_FILESIZE, String(fileSize));
         }
       }
     } catch (error) {
@@ -89,16 +79,15 @@ export class Settings {
     }
   }
 
-  // Load bookmark and mod date
   static async loadImportedFileBookmark(): Promise<{
     bookmark: string | null;
     modDate: number | null;
     fileSize: number | null;
   }> {
     try {
-      const bookmark = await AsyncStorage.getItem(Settings.BOOKMARK_KEY);
-      const modDate = await AsyncStorage.getItem(Settings.MODDATE_KEY);
-      const fileSize = await AsyncStorage.getItem(Settings.FILESIZE_KEY);
+      const bookmark = await AsyncStorage.getItem(STORAGE_KEYS.IMPORTED_BOOKMARK);
+      const modDate = await AsyncStorage.getItem(STORAGE_KEYS.IMPORTED_MODDATE);
+      const fileSize = await AsyncStorage.getItem(STORAGE_KEYS.IMPORTED_FILESIZE);
       return {
         bookmark,
         modDate: modDate ? Number(modDate) : null,
@@ -110,12 +99,11 @@ export class Settings {
     }
   }
 
-  // Clear imported file bookmark
   static async clearImportedFileBookmark(): Promise<void> {
     try {
-      await AsyncStorage.removeItem(Settings.BOOKMARK_KEY);
-      await AsyncStorage.removeItem(Settings.MODDATE_KEY);
-      await AsyncStorage.removeItem(Settings.FILESIZE_KEY);
+      await AsyncStorage.removeItem(STORAGE_KEYS.IMPORTED_BOOKMARK);
+      await AsyncStorage.removeItem(STORAGE_KEYS.IMPORTED_MODDATE);
+      await AsyncStorage.removeItem(STORAGE_KEYS.IMPORTED_FILESIZE);
     } catch (error) {
       console.error('Error clearing imported file bookmark:', error);
     }

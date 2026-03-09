@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Customer } from '../database/schema';
+
 import { db } from '../database/DatabaseService';
-import { checkImportedFile } from '../services/ExcelImportService';
+import { Customer } from '../database/schema';
 import { Settings } from '../models/Settings';
+import { checkImportedFile } from '../services/ExcelImportService';
 
 export function useCustomers(refreshKey?: number) {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -16,13 +17,7 @@ export function useCustomers(refreshKey?: number) {
 
   const refreshStatusAndCustomers = useCallback(async () => {
     const hasChanged = await checkImportedFile();
-    const bookmarkMeta = await Settings.loadImportedFileBookmark();
-    console.log('[CustomersStatus]', {
-      hasChanged,
-      hasBookmark: Boolean(bookmarkMeta.bookmark),
-      modDate: bookmarkMeta.modDate,
-      fileSize: bookmarkMeta.fileSize,
-    });
+    await Settings.loadImportedFileBookmark();
     setHasNewDataAvailable(hasChanged);
     await loadCustomers();
     return hasChanged;
@@ -34,13 +29,7 @@ export function useCustomers(refreshKey?: number) {
     const load = async () => {
       try {
         const hasChanged = await checkImportedFile();
-        const bookmarkMeta = await Settings.loadImportedFileBookmark();
-        console.log('[CustomersLoad]', {
-          hasChanged,
-          hasBookmark: Boolean(bookmarkMeta.bookmark),
-          modDate: bookmarkMeta.modDate,
-          fileSize: bookmarkMeta.fileSize,
-        });
+        await Settings.loadImportedFileBookmark();
         if (isMounted) {
           setHasNewDataAvailable(hasChanged);
         }

@@ -1,11 +1,10 @@
-import React from 'react';
-import Svg, { Path, Circle, Ellipse } from 'react-native-svg';
+import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
 
 interface BeaverLogoProps {
   size?: number;
 }
 
-export default function BeaverLogo({ size = 120 }: BeaverLogoProps) {
+export function BeaverLogo({ size = 120 }: BeaverLogoProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 120 120" fill="none">
       {/* Tail */}

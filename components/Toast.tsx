@@ -1,9 +1,11 @@
-import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { useTheme } from '../contexts/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
+
+import { TIMING } from '../constants';
 import { theme } from '../constants/theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -79,7 +81,7 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
 
     const timer = setTimeout(() => {
       dismiss();
-    }, 3000);
+    }, TIMING.TOAST_DURATION);
 
     return () => clearTimeout(timer);
   }, []);

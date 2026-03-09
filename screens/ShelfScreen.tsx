@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,19 +10,21 @@ import {
   FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { theme } from '../constants/theme';
-import { useOrder } from '../contexts/OrderContext';
-import { db } from '../database/DatabaseService';
-import { SHELF_SOURCE_ID } from '../constants';
-import { SkeletonCard } from '../components/SkeletonLoader';
+
 import { EmptyState } from '../components/EmptyState';
 import { ItemCard } from '../components/ItemCard';
+import { SkeletonCard } from '../components/SkeletonLoader';
+import { SHELF_SOURCE_ID, TIMING } from '../constants';
+import { theme } from '../constants/theme';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useOrder } from '../contexts/OrderContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { db } from '../database/DatabaseService';
+import { normalizeImageUri } from '../utils/imageUri';
 
 interface Article {
   id: number;
@@ -30,7 +33,7 @@ interface Article {
   image: string;
 }
 
-export default function ArticlesScreen() {
+export default function ShelfScreen() {
   const { t } = useLanguage();
   const { colors, isDark } = useTheme();
   const { getItems, setItems } = useOrder();
@@ -76,20 +79,7 @@ export default function ArticlesScreen() {
         if (!isMounted) return;
 
         const loadedArticles = dbItems.map((item) => {
-          // Handle local file paths by adding file:// prefix if needed
-          let imageUri = null;
-          if (item.image_path) {
-            if (
-              item.image_path.startsWith('file://') ||
-              item.image_path.startsWith('http://') ||
-              item.image_path.startsWith('https://')
-            ) {
-              imageUri = item.image_path;
-            } else {
-              // Local file path, add file:// prefix
-              imageUri = `file://${item.image_path}`;
-            }
-          }
+          const imageUri = normalizeImageUri(item.image_path);
 
           return {
             id: item.id,
@@ -166,7 +156,7 @@ export default function ArticlesScreen() {
           colorOrder: null,
         }))
       );
-    }, 120);
+    }, TIMING.QUANTITY_SYNC_DEBOUNCE);
 
     return () => {
       if (syncItemsTimer.current) {
@@ -220,9 +210,9 @@ export default function ArticlesScreen() {
       // Start rapid increment/decrement
       const interval = setInterval(() => {
         updateQuantity(articleId, delta);
-      }, 100);
+      }, TIMING.RAPID_INCREMENT_INTERVAL);
       longPressIntervals.current.set(key, interval);
-    }, 500);
+    }, TIMING.LONG_PRESS_DELAY);
 
     longPressTimers.current.set(key, timer);
   }, [updateQuantity]);

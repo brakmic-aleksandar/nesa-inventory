@@ -1,25 +1,27 @@
+import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCallback, useState } from 'react';
+
 import { Ionicons } from '@expo/vector-icons';
-import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from 'expo-router';
-import BeaverLogo from '../components/BeaverLogo';
+import { StatusBar } from 'expo-status-bar';
+
+import { BeaverLogo } from '../components/BeaverLogo';
 import { ImportProgressModal } from '../components/ImportProgressModal';
 import { Toast } from '../components/Toast';
+import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { theme } from '../constants/theme';
 import { useCustomers } from '../hooks/useCustomers';
 import { useImportData } from '../hooks/useImportData';
 
-interface HomeScreenProps {
+interface StartScreenProps {
   onStartPress: (text: string) => void;
   onSettingsPress: () => void;
   refreshKey?: number;
 }
 
-export default function HomeScreen({ onStartPress, onSettingsPress, refreshKey }: HomeScreenProps) {
+export default function StartScreen({ onStartPress, onSettingsPress, refreshKey }: StartScreenProps) {
   const { t } = useLanguage();
   const { colors, isDark } = useTheme();
   const [customerSearch, setCustomerSearch] = useState('');

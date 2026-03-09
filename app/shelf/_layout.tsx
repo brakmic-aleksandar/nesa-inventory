@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Slot, usePathname, useRouter } from 'expo-router';
+
 import { Ionicons } from '@expo/vector-icons';
+import { Slot, usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '../../contexts/ThemeContext';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { useOrder } from '../../contexts/OrderContext';
-import { db } from '../../database/DatabaseService';
+import { FloatingActionButton } from '../../components/FloatingActionButton';
 import { SHELF_SOURCE_ID } from '../../constants';
 import { theme } from '../../constants/theme';
-import { FloatingActionButton } from '../../components/FloatingActionButton';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { useOrder } from '../../contexts/OrderContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { db } from '../../database/DatabaseService';
 
 export default function ShelfTabsLayout() {
   const router = useRouter();

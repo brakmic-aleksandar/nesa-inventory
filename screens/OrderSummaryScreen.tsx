@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,17 +10,19 @@ import {
   UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useRef, useState } from 'react';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { theme } from '../constants/theme';
-import { useOrder } from '../contexts/OrderContext';
-import { SHELF_SOURCE_ID } from '../constants';
-import { useOrderExport } from '../hooks/useOrderExport';
-import { Toast } from '../components/Toast';
+
 import { EmptyState } from '../components/EmptyState';
+import { Toast } from '../components/Toast';
+import { SHELF_SOURCE_ID } from '../constants';
+import { theme } from '../constants/theme';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useOrder } from '../contexts/OrderContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { useOrderExport } from '../hooks/useOrderExport';
+import { groupOrderItems } from '../utils/orderGrouping';
 
 interface OrderSummaryScreenProps {
   inputText: string;
@@ -42,13 +45,6 @@ export default function OrderSummaryScreen({
 
   const orderItems = getAllItems();
   const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
-
-  console.log('OrderSummaryScreen rendered:', {
-    orderItemsCount: orderItems.length,
-    totalItems,
-    inputText,
-    firstItem: orderItems[0],
-  });
 
   const validateOrder = (): boolean => {
     if (!inputText.trim()) {
@@ -98,15 +94,6 @@ export default function OrderSummaryScreen({
     setIsSending(true);
 
     try {
-      console.log('\n=== ORDER SUMMARY ===');
-      console.log('Order for:', inputText);
-      console.log('Total items:', orderItems.length);
-      console.log('\nSelected items:');
-      orderItems.forEach((item) => {
-        console.log(`  - ${item.name} (x${item.quantity}) from ${item.source}`);
-      });
-      console.log('===================\n');
-
       const result = await sendOrderByEmail(inputText, orderItems, language);
 
       if (!isMounted) return;
@@ -122,9 +109,9 @@ export default function OrderSummaryScreen({
         Toast.error(result.message);
       }
     } catch (error) {
+      console.error('Order confirmation error:', error);
       if (!isMounted) return;
       setIsSending(false);
-      console.error('Order confirmation error:', error);
       Toast.error(t.orderSummaryScreen.failedToSend);
     }
   };
@@ -150,48 +137,17 @@ export default function OrderSummaryScreen({
         Toast.error(result.message);
       }
     } catch (error) {
+      console.error('Order sharing error:', error);
       if (!isMounted) return;
       setIsSharing(false);
-      console.error('Order sharing error:', error);
       Toast.error(t.orderSummaryScreen.failedToSend);
     }
   };
 
-  // Group items by source, then by article (name + code), then aggregate colors
-  const itemsBySource: Record<
-    string,
-    Record<
-      string,
-      { name: string; itemCode?: string | null; colors: { color: string; quantity: number }[] }
-    >
-  > = {};
-  const articleNameCounts: Record<string, Set<string>> = {}; // Track unique codes per article name
-
-  orderItems.forEach((item) => {
-    if (!itemsBySource[item.source]) {
-      itemsBySource[item.source] = {};
-    }
-
-    // Track article name duplicates
-    if (!articleNameCounts[item.name]) {
-      articleNameCounts[item.name] = new Set();
-    }
-    articleNameCounts[item.name].add(item.itemCode || '');
-
-    const articleKey = `${item.name}|${item.itemCode || ''}`;
-    if (!itemsBySource[item.source][articleKey]) {
-      itemsBySource[item.source][articleKey] = {
-        name: item.name,
-        itemCode: item.itemCode,
-        colors: [],
-      };
-    }
-
-    itemsBySource[item.source][articleKey].colors.push({
-      color: item.colorNumber || t.orderSummaryScreen.notAvailable,
-      quantity: item.quantity,
-    });
-  });
+  const { itemsBySource, articleNameCounts } = groupOrderItems(
+    orderItems,
+    t.orderSummaryScreen.notAvailable
+  );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -233,7 +189,7 @@ export default function OrderSummaryScreen({
         <Text style={[styles.summaryTitle, { color: colors.text }]}>
           {t.orderSummaryScreen.orderDetails}
         </Text>
-        <Text style={[styles.totalBadge, { backgroundColor: colors.primary }]}>
+        <Text style={[styles.totalBadge, { backgroundColor: colors.primary, color: colors.textOnColor }]}>
           {totalItems} {t.orderSummaryScreen.items}
         </Text>
       </View>
@@ -348,12 +304,12 @@ export default function OrderSummaryScreen({
             {isSending ? (
               <>
                 <ActivityIndicator size="small" color={colors.textOnColor} />
-                <Text style={styles.confirmButtonText}>{t.orderSummaryScreen.generating}</Text>
+                <Text style={[styles.confirmButtonText, { color: colors.textOnColor }]}>{t.orderSummaryScreen.generating}</Text>
               </>
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={theme.iconSize.medium} color={colors.textOnColor} />
-                <Text style={styles.confirmButtonText}>{t.orderSummaryScreen.sendByEmail}</Text>
+                <Text style={[styles.confirmButtonText, { color: colors.textOnColor }]}>{t.orderSummaryScreen.sendByEmail}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -411,7 +367,6 @@ const styles = StyleSheet.create({
     ...theme.typography.h3,
   },
   totalBadge: {
-    color: theme.light.textOnColor,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.xs,
     borderRadius: theme.radius.round,
@@ -510,6 +465,5 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     ...theme.typography.body,
-    color: theme.light.textOnColor,
   },
 });

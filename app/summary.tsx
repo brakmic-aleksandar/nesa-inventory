@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 
-import OrderSummaryScreen from '../screens/OrderSummaryScreen';
 import { useOrder } from '../contexts/OrderContext';
+import OrderSummaryScreen from '../screens/OrderSummaryScreen';
 
 export default function SummaryRoute() {
   const router = useRouter();

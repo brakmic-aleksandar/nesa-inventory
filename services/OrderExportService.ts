@@ -1,8 +1,9 @@
 import ExcelJS from 'exceljs';
 import { Directory, File, Paths } from 'expo-file-system';
+
+import { SHELF_SOURCE_ID } from '../constants';
 import { db } from '../database/DatabaseService';
 import { translations } from '../localization';
-import { SHELF_SOURCE_ID } from '../constants';
 
 export interface OrderItem {
   name: string;
@@ -103,9 +104,6 @@ export class OrderExportService {
         const key = `${item.source}|${item.name}|${item.colorNumber || ''}|${colorOrder}`;
         const currentQuantity = orderMap.get(key) || 0;
         orderMap.set(key, currentQuantity + item.quantity);
-        if (item.quantity > 0) {
-          console.log(`Order item: ${key} += ${item.quantity} (total: ${orderMap.get(key) || 0})`);
-        }
       });
 
       // Create a sheet for each stand only if it has quantities
@@ -355,7 +353,6 @@ export class OrderExportService {
 
       return outputFile.uri;
     } catch (error) {
-      console.error('Error generating Excel file:', error);
       throw error;
     }
   }

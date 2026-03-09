@@ -1,18 +1,19 @@
 import { useCallback } from 'react';
+
 import * as MailComposer from 'expo-mail-composer';
+
+import { TIMING } from '../constants';
+import { useLanguage } from '../contexts/LanguageContext';
+import { translations } from '../localization';
 import { Settings } from '../models/Settings';
 import { orderExport, OrderItem } from '../services/OrderExportService';
-import { translations } from '../localization';
 import { ShareAnchor, useFileActions } from './useFileActions';
-import { useLanguage } from '../contexts/LanguageContext';
 
 export interface ExportActionResult {
   success: boolean;
   message: string;
   cancelled?: boolean;
 }
-
-const EXPORT_FILE_CLEANUP_DELAY_MS = 60_000;
 
 export function useOrderExport() {
   const { t } = useLanguage();
@@ -22,7 +23,7 @@ export function useOrderExport() {
     (fileUri: string): void => {
       setTimeout(() => {
         void cleanupFile(fileUri);
-      }, EXPORT_FILE_CLEANUP_DELAY_MS);
+      }, TIMING.EXPORT_FILE_CLEANUP_DELAY);
     },
     [cleanupFile]
   );

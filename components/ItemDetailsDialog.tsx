@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
 
-import { useLanguage } from '../contexts/LanguageContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+
 import { theme } from '../constants/theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface DetailField {
   label: string;

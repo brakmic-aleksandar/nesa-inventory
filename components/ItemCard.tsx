@@ -1,9 +1,11 @@
+import { memo, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Href, Link } from 'expo-router';
-import { memo, useRef, useState } from 'react';
 
+import { TIMING } from '../constants';
 import { theme } from '../constants/theme';
 
 interface ItemCardColors {
@@ -73,7 +75,7 @@ function ItemCardComponent({
   const handleOpenInput = () => {
     setInputValue(item.quantity > 0 ? String(item.quantity) : '');
     onOpenQuantityInput();
-    setTimeout(() => inputRef.current?.focus(), 50);
+    setTimeout(() => inputRef.current?.focus(), TIMING.INPUT_FOCUS_DELAY);
   };
 
   const cardStyle = isStand ? styles.standCard : styles.shelfCard;
@@ -101,7 +103,7 @@ function ItemCardComponent({
                   style={[styles.standImage, { backgroundColor: colors.surfaceSecondary }]}
                   contentFit="cover"
                   cachePolicy="memory-disk"
-                  transition={120}
+                  transition={TIMING.IMAGE_TRANSITION}
                   recyclingKey={String(item.id)}
                 />
               ) : (
@@ -135,7 +137,7 @@ function ItemCardComponent({
                     style={{ width: '100%', height: imageHeight }}
                     contentFit="cover"
                     cachePolicy="memory-disk"
-                    transition={120}
+                    transition={TIMING.IMAGE_TRANSITION}
                     recyclingKey={String(item.id)}
                   />
                 ) : (
