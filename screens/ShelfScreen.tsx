@@ -12,7 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-// Removed Picker import; using button group for shelf/stand switcher
 import * as Haptics from 'expo-haptics';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -22,7 +21,7 @@ import { db } from '../database/DatabaseService';
 import { SHELF_SOURCE_ID } from '../constants';
 import { SkeletonCard } from '../components/SkeletonLoader';
 import { EmptyState } from '../components/EmptyState';
-import { ShelfItemCard } from '../components/ShelfItemCard';
+import { ItemCard } from '../components/ItemCard';
 
 interface Article {
   id: number;
@@ -38,7 +37,7 @@ export default function ArticlesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showPresets, setShowPresets] = useState<number | null>(null);
+  const [quantityInputTarget, setQuantityInputTarget] = useState<number | null>(null);
   const scaleAnims = useRef<Map<number, Animated.Value>>(new Map());
   const longPressTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const longPressIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
@@ -53,6 +52,7 @@ export default function ArticlesScreen() {
       text: colors.text,
       textSecondary: colors.textSecondary,
       textOnColor: colors.textOnColor,
+      placeholderIcon: colors.placeholderIcon,
     }),
     [
       colors.surface,
@@ -62,6 +62,7 @@ export default function ArticlesScreen() {
       colors.text,
       colors.textSecondary,
       colors.textOnColor,
+      colors.placeholderIcon,
     ]
   );
 
@@ -243,14 +244,12 @@ export default function ArticlesScreen() {
     }
   }, []);
 
-  const setPresetQuantity = useCallback((articleId: number, quantity: number) => {
+  const setDirectQuantity = useCallback((articleId: number, quantity: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     setArticles((prevArticles) =>
       prevArticles.map((article) => (article.id === articleId ? { ...article, quantity } : article))
     );
-
-    setShowPresets(null);
   }, []);
 
   const renderArticleItem = useCallback(({ item: article }: { item: Article }) => {
@@ -260,12 +259,11 @@ export default function ArticlesScreen() {
     }
 
     return (
-      <ShelfItemCard
+      <ItemCard
         item={article}
-        isDark={isDark}
-          colors={shelfCardColors}
+        colors={shelfCardColors}
         scaleAnim={scaleAnim}
-        showPresets={showPresets === article.id}
+        showQuantityInput={quantityInputTarget === article.id}
         detailsHref={{
           pathname: '/shelf-item-details',
           params: {
@@ -275,23 +273,22 @@ export default function ArticlesScreen() {
             quantity: String(article.quantity),
           },
         }}
+        variant="shelf"
         onDecrease={() => updateQuantity(article.id, -1)}
         onDecreasePressIn={() => handleLongPressIn(article.id, -1)}
         onDecreasePressOut={() => handleLongPressOut(article.id, -1)}
         onIncrease={() => updateQuantity(article.id, 1)}
         onIncreasePressIn={() => handleLongPressIn(article.id, 1)}
         onIncreasePressOut={() => handleLongPressOut(article.id, 1)}
-        onOpenPresets={() => setShowPresets(article.id)}
-        onClosePresets={() => setShowPresets(null)}
-        onSetPreset={(quantity) => setPresetQuantity(article.id, quantity)}
+        onOpenQuantityInput={() => setQuantityInputTarget(article.id)}
+        onCloseQuantityInput={() => setQuantityInputTarget(null)}
+        onSetQuantity={(quantity) => setDirectQuantity(article.id, quantity)}
       />
     );
   }, [
-    colors,
-    isDark,
-    showPresets,
+    quantityInputTarget,
     shelfCardColors,
-    setPresetQuantity,
+    setDirectQuantity,
     updateQuantity,
     handleLongPressIn,
     handleLongPressOut,
@@ -395,23 +392,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.sm,
-    borderBottomWidth: 1,
-    minHeight: 60,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.radius.round,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -454,14 +434,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: theme.spacing.xl * 3,
-  },
-  emptyStateText: {
-    ...theme.typography.body,
-    marginTop: theme.spacing.md,
   },
 });

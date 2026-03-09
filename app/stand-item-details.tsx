@@ -1,9 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { StandItemDetailsDialog } from '../components/StandItemDetailsDialog';
+import { useLanguage } from '../contexts/LanguageContext';
+import { ItemDetailsDialog } from '../components/ItemDetailsDialog';
 
 export default function StandItemDetailsRoute() {
   const router = useRouter();
+  const { t } = useLanguage();
   const params = useLocalSearchParams<{
     name?: string;
     image?: string;
@@ -18,13 +20,22 @@ export default function StandItemDetailsRoute() {
   const colorNumber = params.colorNumber || undefined;
   const itemCode = params.itemCode || undefined;
 
+  const details = [];
+  if (colorNumber) {
+    details.push({ label: t.itemModal.color, value: colorNumber });
+  }
+  if (itemCode) {
+    details.push({ label: t.itemModal.itemCode, value: itemCode });
+  }
+  if (Number.isFinite(quantity as number) && quantity !== undefined) {
+    details.push({ label: t.itemModal.currentQuantity, value: quantity });
+  }
+
   return (
-    <StandItemDetailsDialog
+    <ItemDetailsDialog
       name={name}
       image={image}
-      quantity={Number.isFinite(quantity as number) ? quantity : undefined}
-      colorNumber={colorNumber}
-      itemCode={itemCode}
+      details={details}
       onClose={() => router.back()}
     />
   );

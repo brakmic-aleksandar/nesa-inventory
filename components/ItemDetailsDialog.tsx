@@ -6,23 +6,20 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { theme } from '../constants/theme';
 
-interface ShelfItemDetailsDialogProps {
-  id?: number;
+interface DetailField {
+  label: string;
+  value: string | number;
+}
+
+interface ItemDetailsDialogProps {
   name: string;
   image?: string;
-  quantity?: number;
+  details?: DetailField[];
   onClose: () => void;
 }
 
-export function ShelfItemDetailsDialog({
-  id,
-  name,
-  image,
-  quantity,
-  onClose,
-}: ShelfItemDetailsDialogProps) {
-  const { t } = useLanguage();
-  const { colors, isDark } = useTheme();
+export function ItemDetailsDialog({ name, image, details, onClose }: ItemDetailsDialogProps) {
+  const { colors } = useTheme();
 
   const hasImage = Boolean(image && image !== 'placeholder');
 
@@ -48,23 +45,17 @@ export function ShelfItemDetailsDialog({
         <View style={styles.detailsContainer}>
           <Text style={[styles.itemName, { color: colors.text }]}>{name}</Text>
 
-          {quantity !== undefined ? (
-            <View style={[styles.detailRow, { backgroundColor: colors.surfaceSecondary }]}>
+          {details?.map((detail, index) => (
+            <View
+              key={index}
+              style={[styles.detailRow, { backgroundColor: colors.surfaceSecondary }]}
+            >
               <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
-                {t.itemModal.currentQuantity}:
+                {detail.label}:
               </Text>
-              <Text style={[styles.detailValue, { color: colors.text }]}>{quantity}</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>{detail.value}</Text>
             </View>
-          ) : null}
-
-          {id !== undefined ? (
-            <View style={[styles.detailRow, { backgroundColor: colors.surfaceSecondary }]}>
-              <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
-                {t.itemModal.itemId}:
-              </Text>
-              <Text style={[styles.detailValue, { color: colors.text }]}>{id}</Text>
-            </View>
-          ) : null}
+          ))}
         </View>
       </View>
     </View>

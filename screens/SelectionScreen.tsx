@@ -23,8 +23,6 @@ interface CardScreenProps {
 interface CardData {
   title: string;
   subtitle: string;
-  icon: string;
-  color: string;
 }
 
 export default function CardScreen({
@@ -108,8 +106,6 @@ export default function CardScreen({
   const lastCard: CardData = {
     title: SHELF_SOURCE_ID,
     subtitle: t.selectionScreen.polica,
-    icon: 'notifications-outline',
-    color: colors.error,
   };
 
   const handleSendOrder = () => {

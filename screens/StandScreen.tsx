@@ -2,16 +2,13 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
   Animated,
   FlatList,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-// Removed Picker import; using button group for stand switcher
 import * as Haptics from 'expo-haptics';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -20,7 +17,7 @@ import { theme } from '../constants/theme';
 import { db } from '../database/DatabaseService';
 import { SkeletonRow } from '../components/SkeletonLoader';
 import { EmptyState } from '../components/EmptyState';
-import { StandItemCard } from '../components/StandItemCard';
+import { ItemCard } from '../components/ItemCard';
 
 interface InventoryScreenProps {
   cardTitle: string;
@@ -48,7 +45,7 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
   const { getItems, setItems } = useOrder();
   const [rows, setRows] = useState<Item[][]>([]);
   const [loading, setLoading] = useState(true);
-  const [showPresets, setShowPresets] = useState<{ rowIndex: number; itemId: number } | null>(null);
+  const [quantityInputTarget, setQuantityInputTarget] = useState<{ rowIndex: number; itemId: number } | null>(null);
   const scaleAnims = useRef<Map<string, Animated.Value>>(new Map());
   const longPressTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const longPressIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
@@ -64,6 +61,7 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
       text: colors.text,
       textSecondary: colors.textSecondary,
       textOnColor: colors.textOnColor,
+      placeholderIcon: colors.placeholderIcon,
     }),
     [
       colors.surface,
@@ -73,6 +71,7 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
       colors.text,
       colors.textSecondary,
       colors.textOnColor,
+      colors.placeholderIcon,
     ]
   );
 
@@ -269,7 +268,7 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
     }
   }, []);
 
-  const setPresetQuantity = useCallback((rowIndex: number, itemId: number, quantity: number) => {
+  const setDirectQuantity = useCallback((rowIndex: number, itemId: number, quantity: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     setRows((prevRows) => {
@@ -285,8 +284,6 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
       newRows[rowIndex] = newRow;
       return newRows;
     });
-
-    setShowPresets(null);
   }, []);
 
   const renderStandRow = useCallback(
@@ -325,14 +322,13 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
                 }
 
                 return (
-                  <StandItemCard
+                  <ItemCard
                     key={item.id}
                     item={item}
-                    isDark={isDark}
                     colors={standCardColors}
                     scaleAnim={scaleAnim}
-                    showPresets={
-                      showPresets?.rowIndex === rowIndex && showPresets?.itemId === item.id
+                    showQuantityInput={
+                      quantityInputTarget?.rowIndex === rowIndex && quantityInputTarget?.itemId === item.id
                     }
                     detailsHref={{
                       pathname: '/stand-item-details',
@@ -344,15 +340,16 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
                         itemCode: item.itemCode || '',
                       },
                     }}
+                    variant="stand"
                     onDecrease={() => updateQuantity(rowIndex, item.id, -1)}
                     onDecreasePressIn={() => handleLongPressIn(rowIndex, item.id, -1)}
                     onDecreasePressOut={() => handleLongPressOut(rowIndex, item.id, -1)}
                     onIncrease={() => updateQuantity(rowIndex, item.id, 1)}
                     onIncreasePressIn={() => handleLongPressIn(rowIndex, item.id, 1)}
                     onIncreasePressOut={() => handleLongPressOut(rowIndex, item.id, 1)}
-                    onOpenPresets={() => setShowPresets({ rowIndex, itemId: item.id })}
-                    onClosePresets={() => setShowPresets(null)}
-                    onSetPreset={(quantity) => setPresetQuantity(rowIndex, item.id, quantity)}
+                    onOpenQuantityInput={() => setQuantityInputTarget({ rowIndex, itemId: item.id })}
+                    onCloseQuantityInput={() => setQuantityInputTarget(null)}
+                    onSetQuantity={(quantity) => setDirectQuantity(rowIndex, item.id, quantity)}
                   />
                 );
               }}
@@ -362,10 +359,9 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
       );
     },
     [
-      isDark,
       standCardColors,
-      showPresets,
-      setPresetQuantity,
+      quantityInputTarget,
+      setDirectQuantity,
       updateQuantity,
       handleLongPressIn,
       handleLongPressOut,
@@ -415,23 +411,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.sm,
-    borderBottomWidth: 1,
-    minHeight: 60,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.radius.round,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   scrollView: {
     flex: 1,
   },
@@ -461,11 +440,6 @@ const styles = StyleSheet.create({
     width: '100%',
     textAlign: 'right',
     paddingRight: theme.spacing.md,
-  },
-  rowTitle: {
-    ...theme.typography.h5,
-    paddingHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.sm,
   },
   horizontalScroll: {
     flex: 1,
