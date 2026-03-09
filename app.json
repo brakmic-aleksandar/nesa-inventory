@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "nesa-inventory-app",
+    "slug": "nesa-inventory-app",
+    "scheme": "nesainventoryapp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/beaver-icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/beaver-splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.brakmic.aleksandar.nesainventoryapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-mail-composer",
+      "expo-asset",
+      "expo-image",
+      "expo-sharing"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "78b31e16-9826-4524-ac60-bf3dfb0b7907"
+      }
+    }
+  }
+}
