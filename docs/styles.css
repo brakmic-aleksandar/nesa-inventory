@@ -1,0 +1,105 @@
+:root {
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --text: #12203a;
+  --muted: #50617f;
+  --primary: #0e6fff;
+  --primary-strong: #0a52c2;
+  --border: #d7deec;
+  --radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at top right, #dfeaff, transparent 45%), var(--bg);
+  color: var(--text);
+}
+
+.page {
+  max-width: 550px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.hero {
+  background: linear-gradient(135deg, #ffffff, #eaf1ff);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 18px;
+}
+
+h1 {
+  margin: 8px 0;
+  font-size: clamp(24px, 4vw, 36px);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+
+.actions {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.btn {
+  display: inline-block;
+  text-align: center;
+  padding: 11px 14px;
+  text-decoration: none;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  background: #f8faff;
+}
+
+.btn.primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: transparent;
+}
+
+.btn[aria-disabled='true'] {
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.notes {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+
+.qr-wrap {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+#ios-qr {
+  width: 120px;
+  height: 120px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: none;
+  margin: 0 auto;
+}
+
+.footer {
+  margin-top: 16px;
+  color: var(--muted);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}

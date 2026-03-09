@@ -1,0 +1,9 @@
+{
+  "github": {
+    "owner": "brakmic-aleksandar",
+    "repo": "nesa-inventory",
+    "autoLatest": true,
+    "manifestAssetName": "manifest",
+    "ipaAssetName": ".ipa"
+  }
+}
