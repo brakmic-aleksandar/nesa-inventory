@@ -27,7 +27,7 @@ export function ShelfItemDetailsDialog({
   const hasImage = Boolean(image && image !== 'placeholder');
 
   return (
-    <View style={styles.overlay}>
+    <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
         <Pressable
@@ -41,7 +41,7 @@ export function ShelfItemDetailsDialog({
           <Image source={{ uri: image }} style={styles.image} contentFit="cover" />
         ) : (
           <View style={styles.emptyImage}>
-            <Ionicons name="image-outline" size={160} color={isDark ? '#666' : '#999'} />
+            <Ionicons name="image-outline" size={160} color={colors.placeholderIcon} />
           </View>
         )}
 
@@ -74,7 +74,6 @@ export function ShelfItemDetailsDialog({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,

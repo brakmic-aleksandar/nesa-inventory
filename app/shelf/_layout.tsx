@@ -99,7 +99,7 @@ export default function ShelfTabsLayout() {
                   })
                 }
               >
-                <Text style={{ color: focused ? '#fff' : colors.text }}>{label}</Text>
+                <Text style={{ color: focused ? colors.textOnColor : colors.text }}>{label}</Text>
               </TouchableOpacity>
             );
           })}

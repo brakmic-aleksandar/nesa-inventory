@@ -2,12 +2,16 @@ import { TouchableOpacity, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef } from 'react';
 
+import { useTheme } from '../contexts/ThemeContext';
+import { theme } from '../constants/theme';
+
 interface FloatingActionButtonProps {
   onPress: () => void;
   itemCount: number;
 }
 
 export function FloatingActionButton({ onPress, itemCount }: FloatingActionButtonProps) {
+  const { colors } = useTheme();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const badgeScale = useRef(new Animated.Value(1)).current;
 
@@ -54,15 +58,26 @@ export function FloatingActionButton({ onPress, itemCount }: FloatingActionButto
   return (
     <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}>
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: colors.success }]}
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={0.9}
       >
-        <Ionicons name="send" size={24} color="#fff" />
-        <Animated.View style={[styles.badge, { transform: [{ scale: badgeScale }] }]}>
-          <Text style={styles.badgeText}>{itemCount > 99 ? '99+' : itemCount}</Text>
+        <Ionicons name="send" size={24} color={colors.textOnColor} />
+        <Animated.View
+          style={[
+            styles.badge,
+            {
+              backgroundColor: colors.error,
+              borderColor: colors.surface,
+              transform: [{ scale: badgeScale }],
+            },
+          ]}
+        >
+          <Text style={[styles.badgeText, { color: colors.textOnColor }]}>
+            {itemCount > 99 ? '99+' : itemCount}
+          </Text>
         </Animated.View>
       </TouchableOpacity>
     </Animated.View>
@@ -80,23 +95,14 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#34C759',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...theme.elevation.highest,
   },
   badge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#FF3B30',
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -104,10 +110,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 6,
     borderWidth: 2,
-    borderColor: '#fff',
   },
   badgeText: {
-    color: '#fff',
     fontSize: 12,
     fontWeight: '700',
   },

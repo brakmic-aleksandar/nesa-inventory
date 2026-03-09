@@ -347,12 +347,12 @@ export default function OrderSummaryScreen({
           >
             {isSending ? (
               <>
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={colors.textOnColor} />
                 <Text style={styles.confirmButtonText}>{t.orderSummaryScreen.generating}</Text>
               </>
             ) : (
               <>
-                <Ionicons name="checkmark-circle" size={theme.iconSize.medium} color="#fff" />
+                <Ionicons name="checkmark-circle" size={theme.iconSize.medium} color={colors.textOnColor} />
                 <Text style={styles.confirmButtonText}>{t.orderSummaryScreen.sendByEmail}</Text>
               </>
             )}
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     ...theme.typography.h3,
   },
   totalBadge: {
-    color: '#fff',
+    color: theme.light.textOnColor,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.xs,
     borderRadius: theme.radius.round,
@@ -510,6 +510,6 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     ...theme.typography.body,
-    color: '#fff',
+    color: theme.light.textOnColor,
   },
 });

@@ -21,6 +21,7 @@ interface ShelfItemCardProps {
     surfaceSecondary: string;
     text: string;
     textSecondary: string;
+    textOnColor: string;
   };
   scaleAnim: Animated.Value;
   showPresets: boolean;
@@ -90,7 +91,7 @@ function ShelfItemCardComponent({
                   recyclingKey={String(item.id)}
                 />
               ) : (
-                <Ionicons name="image-outline" size={160} color={isDark ? '#666' : '#999'} />
+                <Ionicons name="image-outline" size={160} color={isDark ? theme.dark.placeholderIcon : theme.light.placeholderIcon} />
               )}
             </View>
           </View>
@@ -126,7 +127,7 @@ function ShelfItemCardComponent({
             onPressOut={onDecreasePressOut}
             delayLongPress={500}
           >
-            <Ionicons name="remove" size={theme.iconSize.medium} color="#fff" />
+            <Ionicons name="remove" size={theme.iconSize.medium} color={colors.textOnColor} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.quantityDisplay} onPress={onOpenPresets}>
@@ -148,7 +149,7 @@ function ShelfItemCardComponent({
             onPressOut={onIncreasePressOut}
             delayLongPress={500}
           >
-            <Ionicons name="add" size={theme.iconSize.medium} color="#fff" />
+            <Ionicons name="add" size={theme.iconSize.medium} color={colors.textOnColor} />
           </TouchableOpacity>
         </View>
       )}
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
   },
   presetButtonText: {
     ...theme.typography.tiny,
-    color: '#fff',
+    color: theme.light.textOnColor,
   },
   presetCloseButton: {
     width: 28,

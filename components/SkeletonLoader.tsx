@@ -1,6 +1,9 @@
 import { View, StyleSheet, Animated } from 'react-native';
 import { useEffect, useRef } from 'react';
 
+import { theme } from '../constants/theme';
+import { useTheme } from '../contexts/ThemeContext';
+
 interface SkeletonLoaderProps {
   width?: number | string;
   height?: number;
@@ -14,6 +17,7 @@ export function SkeletonLoader({
   borderRadius = 4,
   style,
 }: SkeletonLoaderProps) {
+  const { colors } = useTheme();
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -43,8 +47,8 @@ export function SkeletonLoader({
   return (
     <Animated.View
       style={[
-        styles.skeleton,
         {
+          backgroundColor: colors.skeleton,
           width,
           height,
           borderRadius,
@@ -57,8 +61,10 @@ export function SkeletonLoader({
 }
 
 export function SkeletonCard() {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, ...theme.elevation.medium }]}>
       <SkeletonLoader width="100%" height={160} borderRadius={0} style={{ marginBottom: 10 }} />
       <SkeletonLoader width="80%" height={16} style={{ marginBottom: 12, marginLeft: 10 }} />
       <SkeletonLoader width="100%" height={50} borderRadius={0} />
@@ -67,8 +73,10 @@ export function SkeletonCard() {
 }
 
 export function SkeletonStandItem() {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.standItem}>
+    <View style={[styles.standItem, { backgroundColor: colors.surface, ...theme.elevation.medium }]}>
       <SkeletonLoader width={180} height={150} borderRadius={12} style={{ marginBottom: 10 }} />
       <SkeletonLoader width={140} height={16} style={{ marginBottom: 8, marginLeft: 20 }} />
       <SkeletonLoader width={180} height={50} borderRadius={12} />
@@ -90,35 +98,20 @@ export function SkeletonRow() {
 }
 
 const styles = StyleSheet.create({
-  skeleton: {
-    backgroundColor: '#E0E0E0',
-  },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: theme.radius.medium,
     padding: 0,
     width: '30%',
     marginBottom: 15,
     alignItems: 'stretch',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   standItem: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: theme.radius.medium,
     padding: 0,
     marginRight: 15,
     width: 180,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   row: {
     flexDirection: 'row',

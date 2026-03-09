@@ -21,7 +21,7 @@ export function ImportProgressModal({
 
   const content = (
     <View style={styles.root} pointerEvents="auto">
-      <View style={styles.backdrop} />
+      <View style={[styles.backdrop, { backgroundColor: colors.overlay }]} />
       <View
         style={[
           styles.dialog,
@@ -31,7 +31,7 @@ export function ImportProgressModal({
         ]}
       >
         <View style={styles.container}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.text, { color: colors.text }]}>{message}</Text>
         </View>
       </View>
@@ -61,7 +61,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   dialog: {
     width: '80%',

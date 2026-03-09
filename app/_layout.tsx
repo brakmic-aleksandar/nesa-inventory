@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 
+import { theme } from '../constants/theme';
 import { LanguageProvider } from '../contexts/LanguageContext';
 import { OrderProvider } from '../contexts/OrderContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
@@ -48,7 +49,7 @@ export default function RootLayout() {
   if (!isDbReady) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={theme.light.primary} />
         <Text style={styles.loadingText}>{loadingText}</Text>
       </View>
     );
@@ -111,11 +112,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.light.background,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#666',
+    color: theme.light.textSecondary,
   },
 });

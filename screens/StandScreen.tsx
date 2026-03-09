@@ -63,6 +63,7 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
       surfaceSecondary: colors.surfaceSecondary,
       text: colors.text,
       textSecondary: colors.textSecondary,
+      textOnColor: colors.textOnColor,
     }),
     [
       colors.surface,
@@ -71,6 +72,7 @@ export default function InventoryScreen({ cardTitle }: InventoryScreenProps) {
       colors.surfaceSecondary,
       colors.text,
       colors.textSecondary,
+      colors.textOnColor,
     ]
   );
 

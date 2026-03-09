@@ -109,7 +109,7 @@ export default function CardScreen({
     title: SHELF_SOURCE_ID,
     subtitle: t.selectionScreen.polica,
     icon: 'notifications-outline',
-    color: '#FF2D55',
+    color: colors.error,
   };
 
   const handleSendOrder = () => {
@@ -171,7 +171,7 @@ export default function CardScreen({
           style={[styles.sendOrderButton, { backgroundColor: colors.success }]}
           onPress={handleSendOrder}
         >
-          <Ionicons name="send" size={theme.iconSize.medium} color="#fff" />
+          <Ionicons name="send" size={theme.iconSize.medium} color={colors.textOnColor} />
           <Text style={styles.sendOrderButtonText}>{t.selectionScreen.sendOrder}</Text>
         </TouchableOpacity>
       </View>
@@ -246,6 +246,6 @@ const styles = StyleSheet.create({
   },
   sendOrderButtonText: {
     ...theme.typography.h4,
-    color: '#fff',
+    color: theme.light.textOnColor,
   },
 });

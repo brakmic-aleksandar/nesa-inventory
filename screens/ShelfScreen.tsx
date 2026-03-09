@@ -52,6 +52,7 @@ export default function ArticlesScreen() {
       surfaceSecondary: colors.surfaceSecondary,
       text: colors.text,
       textSecondary: colors.textSecondary,
+      textOnColor: colors.textOnColor,
     }),
     [
       colors.surface,
@@ -60,6 +61,7 @@ export default function ArticlesScreen() {
       colors.surfaceSecondary,
       colors.text,
       colors.textSecondary,
+      colors.textOnColor,
     ]
   );
 

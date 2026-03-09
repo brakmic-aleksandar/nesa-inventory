@@ -21,6 +21,7 @@ interface StandItemCardProps {
     surfaceSecondary: string;
     text: string;
     textSecondary: string;
+    textOnColor: string;
   };
   scaleAnim: Animated.Value;
   showPresets: boolean;
@@ -93,7 +94,7 @@ function StandItemCardComponent({
                   },
                 ]}
               >
-                <Ionicons name="image-outline" size={120} color={isDark ? '#666' : '#999'} />
+                <Ionicons name="image-outline" size={120} color={isDark ? theme.dark.placeholderIcon : theme.light.placeholderIcon} />
               </View>
             )}
           </View>
@@ -129,7 +130,7 @@ function StandItemCardComponent({
             onPressOut={onDecreasePressOut}
             delayLongPress={500}
           >
-            <Ionicons name="remove" size={theme.iconSize.medium} color="#fff" />
+            <Ionicons name="remove" size={theme.iconSize.medium} color={colors.textOnColor} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.quantityDisplay} onPress={onOpenPresets}>
@@ -151,7 +152,7 @@ function StandItemCardComponent({
             onPressOut={onIncreasePressOut}
             delayLongPress={500}
           >
-            <Ionicons name="add" size={theme.iconSize.medium} color="#fff" />
+            <Ionicons name="add" size={theme.iconSize.medium} color={colors.textOnColor} />
           </TouchableOpacity>
         </View>
       )}
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
   },
   presetButtonText: {
     ...theme.typography.caption,
-    color: '#fff',
+    color: theme.light.textOnColor,
   },
   presetCloseButton: {
     width: 32,

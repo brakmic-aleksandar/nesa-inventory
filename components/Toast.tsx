@@ -2,6 +2,9 @@ import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 
+import { useTheme } from '../contexts/ThemeContext';
+import { theme } from '../constants/theme';
+
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastMessage {
@@ -55,6 +58,7 @@ interface ToastItemProps {
 }
 
 function ToastItem({ toast, onDismiss }: ToastItemProps) {
+  const { colors } = useTheme();
   const translateY = useRef(new Animated.Value(-100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -114,14 +118,14 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
   const getColor = () => {
     switch (toast.type) {
       case 'success':
-        return '#34C759';
+        return colors.success;
       case 'error':
-        return '#FF3B30';
+        return colors.error;
       case 'warning':
-        return '#FF9500';
+        return colors.warning;
       case 'info':
       default:
-        return '#007AFF';
+        return colors.info;
     }
   };
 
@@ -135,11 +139,19 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
         },
       ]}
     >
-      <View style={[styles.toastContent, { borderLeftColor: getColor() }]}>
+      <View
+        style={[
+          styles.toastContent,
+          {
+            backgroundColor: colors.surface,
+            borderLeftColor: getColor(),
+          },
+        ]}
+      >
         <Ionicons name={getIcon()} size={24} color={getColor()} />
-        <Text style={styles.toastText}>{toast.message}</Text>
+        <Text style={[styles.toastText, { color: colors.text }]}>{toast.message}</Text>
         <TouchableOpacity onPress={dismiss} style={styles.closeButton}>
-          <Ionicons name="close" size={20} color="#666" />
+          <Ionicons name="close" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -187,24 +199,17 @@ const styles = StyleSheet.create({
   toastContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: theme.radius.medium,
+    padding: theme.spacing.lg,
     borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...theme.elevation.high,
   },
   toastText: {
     flex: 1,
-    marginLeft: 12,
-    fontSize: 15,
-    color: '#333',
-    fontWeight: '500',
+    marginLeft: theme.spacing.md,
+    ...theme.typography.bodyMedium,
   },
   closeButton: {
-    padding: 4,
+    padding: theme.spacing.xs,
   },
 });

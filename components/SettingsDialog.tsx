@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { theme } from '../constants/theme';
 import { languages } from '../localization';
 import { Settings } from '../models/Settings';
 import { excelImport } from '../services/ExcelImportService';
@@ -164,7 +165,9 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
       onRequestClose={importProgress.visible ? undefined : closeWithSave}
     >
       <View style={styles.root}>
-        <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
+        <Animated.View
+          style={[styles.backdrop, { backgroundColor: colors.overlay, opacity: backdropOpacity }]}
+        >
           {!importProgress.visible ? (
             <Pressable style={StyleSheet.absoluteFill} onPress={closeWithSave} />
           ) : null}
@@ -213,18 +216,23 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                           style={[
                             styles.languageButton,
                             {
-                              backgroundColor: isDark ? '#1C1C1E' : '#f0f0f0',
-                              borderColor: language === lang.code ? '#007AFF' : 'transparent',
+                              backgroundColor: colors.surfaceSecondary,
+                              borderColor: language === lang.code ? colors.primary : 'transparent',
                             },
-                            language === lang.code && styles.languageButtonActive,
+                            language === lang.code && {
+                              backgroundColor: colors.primaryLight,
+                              borderColor: colors.primary,
+                            },
                           ]}
                           onPress={() => setLanguage(lang.code)}
                         >
                           <Text
                             style={[
                               styles.languageButtonText,
-                              { color: language === lang.code ? '#007AFF' : colors.textSecondary },
-                              language === lang.code && styles.languageButtonTextActive,
+                              {
+                                color:
+                                  language === lang.code ? colors.primary : colors.textSecondary,
+                              },
                             ]}
                           >
                             {lang.name}
@@ -235,7 +243,11 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
 
                     <View style={styles.settingRow}>
                       <View style={styles.settingLabelContainer}>
-                        <Ionicons name={isDark ? 'moon' : 'sunny'} size={20} color="#007AFF" />
+                        <Ionicons
+                          name={isDark ? 'moon' : 'sunny'}
+                          size={20}
+                          color={colors.primary}
+                        />
                         <Text style={[styles.settingLabel, { color: colors.text }]}>
                           {t.settings.darkMode}
                         </Text>
@@ -243,8 +255,8 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                       <Switch
                         value={isDark}
                         onValueChange={toggleColorScheme}
-                        trackColor={{ false: '#d1d1d6', true: '#34C759' }}
-                        thumbColor="#fff"
+                        trackColor={{ false: colors.switchTrackOff, true: colors.success }}
+                        thumbColor={colors.textOnColor}
                       />
                     </View>
 
@@ -269,21 +281,36 @@ export function SettingsDialog({ onClose }: SettingsDialogProps) {
                       onChangeText={setDestinationEmail}
                     />
 
-                    <Pressable style={styles.importButton} onPress={handleImportData}>
-                      <Ionicons name="cloud-download-outline" size={24} color="#fff" />
-                      <Text style={styles.importButtonText}>{t.settings.importData}</Text>
+                    <Pressable
+                      style={[styles.importButton, { backgroundColor: colors.success }]}
+                      onPress={handleImportData}
+                    >
+                      <Ionicons name="cloud-download-outline" size={24} color={colors.textOnColor} />
+                      <Text style={[styles.importButtonText, { color: colors.textOnColor }]}>
+                        {t.settings.importData}
+                      </Text>
                     </Pressable>
 
-                    <Pressable style={styles.exportButton} onPress={handleGenerateExamples}>
-                      <Ionicons name="document-text-outline" size={24} color="#fff" />
-                      <Text style={styles.exportButtonText}>{t.settings.exportExamples}</Text>
+                    <Pressable
+                      style={[styles.exportButton, { backgroundColor: colors.warning }]}
+                      onPress={handleGenerateExamples}
+                    >
+                      <Ionicons name="document-text-outline" size={24} color={colors.textOnColor} />
+                      <Text style={[styles.exportButtonText, { color: colors.textOnColor }]}>
+                        {t.settings.exportExamples}
+                      </Text>
                     </Pressable>
                   </View>
                 </ScrollView>
 
                 <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
-                  <Pressable style={styles.closeButton} onPress={closeWithSave}>
-                    <Text style={styles.closeButtonText}>{t.settings.close}</Text>
+                  <Pressable
+                    style={[styles.closeButton, { backgroundColor: colors.primary }]}
+                    onPress={closeWithSave}
+                  >
+                    <Text style={[styles.closeButtonText, { color: colors.textOnColor }]}>
+                      {t.settings.close}
+                    </Text>
                   </Pressable>
                 </View>
               </>
@@ -306,15 +333,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   keyboardAvoidingContainer: {
     flex: 1,
     justifyContent: 'flex-end',
   },
   sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: theme.radius.xlarge,
+    borderTopRightRadius: theme.radius.xlarge,
     height: '65%',
     minHeight: '55%',
     maxHeight: '95%',
@@ -323,23 +349,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: theme.spacing.xl,
     borderBottomWidth: 1,
   },
   modalTitle: {
+    ...theme.typography.h2,
     fontSize: 22,
-    fontWeight: '600',
   },
   modalBody: {
     flex: 1,
   },
   settingsSection: {
-    padding: 20,
+    padding: theme.spacing.xl,
     borderBottomWidth: 1,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...theme.typography.h4,
     marginBottom: 15,
     marginTop: 10,
   },
@@ -347,8 +372,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    marginBottom: 16,
+    paddingVertical: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
   },
   settingLabelContainer: {
     flexDirection: 'row',
@@ -356,62 +381,55 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   settingLabel: {
-    fontSize: 16,
+    ...theme.typography.body,
     fontWeight: '500',
   },
   settingsInput: {
     height: 50,
-    borderRadius: 8,
+    borderRadius: theme.radius.small,
     paddingHorizontal: 15,
-    fontSize: 16,
+    ...theme.typography.body,
     borderWidth: 1,
-    marginBottom: 20,
+    marginBottom: theme.spacing.xl,
   },
   importButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#34C759',
     height: 50,
-    borderRadius: 10,
+    borderRadius: theme.radius.medium,
     gap: 10,
     marginTop: 10,
   },
   importButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    ...theme.typography.body,
     fontWeight: '600',
   },
   exportButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF9500',
     height: 50,
-    borderRadius: 10,
+    borderRadius: theme.radius.medium,
     gap: 10,
     marginTop: 10,
   },
   exportButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    ...theme.typography.body,
     fontWeight: '600',
   },
   modalFooter: {
-    padding: 20,
+    padding: theme.spacing.xl,
     borderTopWidth: 1,
   },
   closeButton: {
-    backgroundColor: '#007AFF',
     height: 50,
-    borderRadius: 10,
+    borderRadius: theme.radius.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
+    ...theme.typography.h4,
   },
   languageContainer: {
     flexDirection: 'row',
@@ -420,22 +438,15 @@ const styles = StyleSheet.create({
   },
   languageButton: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.radius.small,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  languageButtonActive: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#007AFF',
-  },
   languageButtonText: {
-    fontSize: 14,
+    ...theme.typography.bodySmall,
     fontWeight: '600',
-  },
-  languageButtonTextActive: {
-    color: '#007AFF',
   },
 });

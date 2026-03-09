@@ -90,6 +90,7 @@ export const theme = {
   light: {
     primary: '#007AFF',
     primaryDark: '#0051D5',
+    primaryLight: '#E3F2FD',
     background: '#f5f5f5',
     surface: '#ffffff',
     surfaceSecondary: '#f9f9f9',
@@ -97,6 +98,7 @@ export const theme = {
     text: '#000000',
     textSecondary: '#666666',
     textTertiary: '#999999',
+    textOnColor: '#ffffff',
     border: '#e0e0e0',
     borderLight: '#f0f0f0',
     error: '#FF3B30',
@@ -104,12 +106,16 @@ export const theme = {
     warning: '#FF9500',
     info: '#007AFF',
     overlay: 'rgba(0, 0, 0, 0.5)',
+    placeholderIcon: '#999999',
+    skeleton: '#E0E0E0',
+    switchTrackOff: '#d1d1d6',
   },
 
   // Dark mode colors
   dark: {
     primary: '#0A84FF',
     primaryDark: '#007AFF',
+    primaryLight: 'rgba(10, 132, 255, 0.15)',
     background: '#000000',
     surface: '#1C1C1E',
     surfaceSecondary: '#2C2C2E',
@@ -117,6 +123,7 @@ export const theme = {
     text: '#FFFFFF',
     textSecondary: '#EBEBF5',
     textTertiary: '#EBEBF599',
+    textOnColor: '#ffffff',
     border: '#38383A',
     borderLight: '#48484A',
     error: '#FF453A',
@@ -124,6 +131,9 @@ export const theme = {
     warning: '#FF9F0A',
     info: '#0A84FF',
     overlay: 'rgba(0, 0, 0, 0.7)',
+    placeholderIcon: '#666666',
+    skeleton: '#38383A',
+    switchTrackOff: '#48484A',
   },
 };
 
