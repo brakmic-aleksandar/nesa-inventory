@@ -166,13 +166,10 @@ export default function OrderSummaryScreen({
       return;
     }
 
-    let isMounted = true;
     setIsSending(true);
 
     try {
       const result = await sendOrderByEmail(inputText, orderItems, language);
-
-      if (!isMounted) return;
       setIsSending(false);
 
       if (result.success) {
@@ -186,7 +183,6 @@ export default function OrderSummaryScreen({
       }
     } catch (error) {
       console.error('Order confirmation error:', error);
-      if (!isMounted) return;
       setIsSending(false);
       Toast.error(t.orderSummaryScreen.failedToSend);
     }
@@ -197,14 +193,11 @@ export default function OrderSummaryScreen({
       return;
     }
 
-    let isMounted = true;
     setIsSharing(true);
 
     try {
       const anchor = await getShareAnchor();
       const result = await shareOrderFile(inputText, orderItems, language, anchor);
-
-      if (!isMounted) return;
       setIsSharing(false);
 
       if (result.success) {
@@ -214,7 +207,6 @@ export default function OrderSummaryScreen({
       }
     } catch (error) {
       console.error('Order sharing error:', error);
-      if (!isMounted) return;
       setIsSharing(false);
       Toast.error(t.orderSummaryScreen.failedToSend);
     }

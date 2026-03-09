@@ -67,8 +67,8 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
   const scaleAnims = useRef<Map<string, Animated.Value>>(new Map());
   const longPressTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const longPressIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
-  const getItemsRef = useRef(getItems);
   const syncItemsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialLoadRef = useRef(true);
 
   const standCardColors = useMemo(
     () => ({
@@ -94,8 +94,8 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
   );
 
   useEffect(() => {
-    getItemsRef.current = getItems;
-  }, [getItems]);
+    scaleAnims.current.clear();
+  }, [cardTitle]);
 
   // Load items for the current stand route
   useEffect(() => {
@@ -137,12 +137,12 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
           }
         }
 
-        const groupedRows: Item[][] = Array.from(rowMap.entries())
+        let finalRows: Item[][] = [...rowMap.entries()]
           .sort(([rowA], [rowB]) => rowA - rowB)
           .map(([, rowItems]) => rowItems);
-        setRows(groupedRows);
-        // Load saved quantities from context
-        const savedItems = getItemsRef.current(cardTitle);
+
+        // Merge saved quantities from context in a single pass
+        const savedItems = getItems(cardTitle);
         if (savedItems.length > 0) {
           const savedByKey = new Map<string, { quantity: number; colorOrder: number | null }>();
           for (const saved of savedItems) {
@@ -153,7 +153,7 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
             });
           }
 
-          const updatedRows = groupedRows.map((row) =>
+          finalRows = finalRows.map((row) =>
             row.map((item) => {
               const itemKey = `${item.name}::${item.colorNumber ?? ''}::${item.colorOrder ?? ''}`;
               const saved = savedByKey.get(itemKey);
@@ -166,8 +166,8 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
                 : item;
             })
           );
-          setRows(updatedRows);
         }
+        setRows(finalRows);
         setLoading(false);
       } catch (error) {
         console.error('Error loading stand items:', error);
@@ -194,6 +194,12 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
   }, []);
 
   useEffect(() => {
+    // Skip the initial load — context already has this data
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      return;
+    }
+
     // Batch context sync so a single +/- press does not force expensive full-list flattening immediately.
     if (syncItemsTimer.current) {
       clearTimeout(syncItemsTimer.current);

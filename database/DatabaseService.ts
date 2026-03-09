@@ -1,8 +1,28 @@
 import * as SQLite from 'expo-sqlite';
+
 import { CREATE_TABLES_SQL, Stand, StandItem, ShelfItem, Customer } from './schema';
+
+class QueryCache {
+  private cache = new Map<string, { data: unknown; timestamp: number }>();
+
+  get<T>(key: string): T | undefined {
+    const entry = this.cache.get(key);
+    if (!entry) return undefined;
+    return entry.data as T;
+  }
+
+  set(key: string, data: unknown): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  invalidate(): void {
+    this.cache.clear();
+  }
+}
 
 class DatabaseService {
   private db: SQLite.SQLiteDatabase | null = null;
+  private cache = new QueryCache();
 
   private async execRawSQL(sql: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
@@ -32,6 +52,10 @@ class DatabaseService {
       console.error('Error initializing database:', error);
       throw error;
     }
+  }
+
+  invalidateCache(): void {
+    this.cache.invalidate();
   }
 
   private async createTables(): Promise<void> {
@@ -134,7 +158,13 @@ class DatabaseService {
   // Stand operations
   async getAllStands(): Promise<Stand[]> {
     if (!this.db) throw new Error('Database not initialized');
-    return await this.db.getAllAsync<Stand>('SELECT * FROM stands ORDER BY order_index');
+
+    const cached = this.cache.get<Stand[]>('allStands');
+    if (cached) return cached;
+
+    const result = await this.db.getAllAsync<Stand>('SELECT * FROM stands ORDER BY order_index');
+    this.cache.set('allStands', result);
+    return result;
   }
 
   async getStandById(id: number): Promise<Stand | null> {
@@ -144,16 +174,30 @@ class DatabaseService {
 
   async getStandByName(name: string): Promise<Stand | null> {
     if (!this.db) throw new Error('Database not initialized');
-    return await this.db.getFirstAsync<Stand>('SELECT * FROM stands WHERE name = ?', [name]);
+
+    const cacheKey = `stand:${name}`;
+    const cached = this.cache.get<Stand | null>(cacheKey);
+    if (cached !== undefined) return cached;
+
+    const result = await this.db.getFirstAsync<Stand>('SELECT * FROM stands WHERE name = ?', [name]);
+    this.cache.set(cacheKey, result);
+    return result;
   }
 
   // Stand items operations
   async getStandItems(standId: number): Promise<StandItem[]> {
     if (!this.db) throw new Error('Database not initialized');
-    return await this.db.getAllAsync<StandItem>(
+
+    const cacheKey = `standItems:${standId}`;
+    const cached = this.cache.get<StandItem[]>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.db.getAllAsync<StandItem>(
       'SELECT * FROM stand_items WHERE stand_id = ? ORDER BY row_index, col_index',
       [standId]
     );
+    this.cache.set(cacheKey, result);
+    return result;
   }
 
   async updateStandItem(
@@ -168,12 +212,19 @@ class DatabaseService {
       'UPDATE stand_items SET name = ?, color_number = ?, item_code = ?, image_path = ? WHERE id = ?',
       [name, colorNumber, itemCode, imagePath, id]
     );
+    this.cache.invalidate();
   }
 
   // Shelf items operations
   async getAllShelfItems(): Promise<ShelfItem[]> {
     if (!this.db) throw new Error('Database not initialized');
-    return await this.db.getAllAsync<ShelfItem>('SELECT * FROM shelf_items ORDER BY order_index');
+
+    const cached = this.cache.get<ShelfItem[]>('allShelfItems');
+    if (cached) return cached;
+
+    const result = await this.db.getAllAsync<ShelfItem>('SELECT * FROM shelf_items ORDER BY order_index');
+    this.cache.set('allShelfItems', result);
+    return result;
   }
 
   async updateShelfItem(id: number, name: string, imagePath: string | null): Promise<void> {
@@ -183,6 +234,7 @@ class DatabaseService {
       imagePath,
       id,
     ]);
+    this.cache.invalidate();
   }
 
   // Import operations
@@ -199,12 +251,19 @@ class DatabaseService {
       await this.db.execAsync('ROLLBACK TO SAVEPOINT clear_all');
       throw error;
     }
+    this.cache.invalidate();
   }
 
   // Customer operations
   async getAllCustomers(): Promise<Customer[]> {
     if (!this.db) throw new Error('Database not initialized');
-    return await this.db.getAllAsync<Customer>('SELECT * FROM customers ORDER BY order_index ASC');
+
+    const cached = this.cache.get<Customer[]>('allCustomers');
+    if (cached) return cached;
+
+    const result = await this.db.getAllAsync<Customer>('SELECT * FROM customers ORDER BY order_index ASC');
+    this.cache.set('allCustomers', result);
+    return result;
   }
 
   async importCustomers(customers: Omit<Customer, 'id'>[]): Promise<void> {
@@ -217,6 +276,7 @@ class DatabaseService {
         customer.order_index,
       ]);
     }
+    this.cache.invalidate();
   }
 
   async importStands(stands: Omit<Stand, 'id'>[]): Promise<void> {
@@ -240,11 +300,13 @@ class DatabaseService {
       console.error('Error importing stands:', error);
       throw error;
     }
+    this.cache.invalidate();
   }
 
   async updateStandColorHeadersModeByName(name: string, mode: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
     await this.db.runAsync('UPDATE stands SET color_headers_mode = ? WHERE name = ?', [mode, name]);
+    this.cache.invalidate();
   }
 
   async importStandItems(items: Omit<StandItem, 'id'>[]): Promise<void> {
@@ -270,6 +332,7 @@ class DatabaseService {
       console.error('Error importing stand items:', error);
       throw error;
     }
+    this.cache.invalidate();
   }
 
   async importShelfItems(items: Omit<ShelfItem, 'id'>[]): Promise<void> {
@@ -286,6 +349,7 @@ class DatabaseService {
       console.error('Error importing shelf items:', error);
       throw error;
     }
+    this.cache.invalidate();
   }
 }
 

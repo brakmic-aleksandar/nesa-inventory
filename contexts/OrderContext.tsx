@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState, ReactNode } from 'react';
 
 interface OrderItem {
   id: number;
@@ -31,13 +31,12 @@ const OrderContext = createContext<OrderContextType | undefined>(undefined);
 export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [itemsBySource, setItemsBySource] = useState<Record<string, OrderItem[]>>({});
   const [customer, setCustomer] = useState('');
+  const itemsBySourceRef = useRef(itemsBySource);
+  itemsBySourceRef.current = itemsBySource;
 
-  const getItems = useCallback(
-    (source: string): OrderItem[] => {
-      return itemsBySource[source] || [];
-    },
-    [itemsBySource]
-  );
+  const getItems = useCallback((source: string): OrderItem[] => {
+    return itemsBySourceRef.current[source] || [];
+  }, []);
 
   const setItems = useCallback((source: string, items: OrderItem[]) => {
     setItemsBySource((prev) => ({
@@ -56,7 +55,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       colorOrder?: number | null;
     }[] = [];
 
-    Object.entries(itemsBySource).forEach(([source, items]) => {
+    Object.entries(itemsBySourceRef.current).forEach(([source, items]: [string, OrderItem[]]) => {
       items.forEach((item) => {
         if (item.quantity > 0) {
           allItems.push({
@@ -72,16 +71,19 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     });
 
     return allItems;
-  }, [itemsBySource]);
+  }, []);
 
   const clearAll = useCallback(() => {
     setItemsBySource({});
   }, []);
 
+  const value = useMemo(
+    () => ({ getItems, setItems, customer, setCustomer, getAllItems, clearAll }),
+    [getItems, setItems, customer, setCustomer, getAllItems, clearAll]
+  );
+
   return (
-    <OrderContext.Provider
-      value={{ getItems, setItems, customer, setCustomer, getAllItems, clearAll }}
-    >
+    <OrderContext.Provider value={value}>
       {children}
     </OrderContext.Provider>
   );

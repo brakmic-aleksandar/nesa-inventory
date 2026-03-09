@@ -60,6 +60,7 @@ export default function ShelfScreen() {
   const longPressTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const longPressIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
   const syncItemsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialLoadRef = useRef(true);
 
   const shelfCardColors = useMemo(
     () => ({
@@ -104,26 +105,23 @@ export default function ShelfScreen() {
           };
         });
 
-        setArticles(loadedArticles);
-
-        // Load saved quantities from context
+        // Merge saved quantities from context in a single pass
         const savedItems = getItems(SHELF_SOURCE_ID);
+        let finalArticles = loadedArticles;
         if (savedItems.length > 0) {
           const quantityMap: Record<number, number> = {};
           savedItems.forEach((item) => {
             quantityMap[item.id] = item.quantity;
           });
 
-          const updatedArticles = loadedArticles.map((article) => ({
+          finalArticles = loadedArticles.map((article) => ({
             ...article,
             quantity: quantityMap[article.id] || article.quantity,
           }));
-          if (isMounted) {
-            setArticles(updatedArticles);
-          }
         }
 
         if (isMounted) {
+          setArticles(finalArticles);
           setLoading(false);
         }
       } catch (error) {
@@ -142,21 +140,28 @@ export default function ShelfScreen() {
   }, []);
 
   useEffect(() => {
-    // Cleanup timers on unmount to prevent memory leaks
+    // Cleanup timers and animation refs on unmount to prevent memory leaks
     return () => {
       longPressTimers.current.forEach((timer) => clearTimeout(timer));
       longPressTimers.current.clear();
       longPressIntervals.current.forEach((interval) => clearInterval(interval));
       longPressIntervals.current.clear();
+      scaleAnims.current.clear();
     };
   }, []);
 
   useEffect(() => {
-    // Batch context sync to avoid pushing a full payload on every single +/- tap.
+    // Skip the initial load — context already has this data
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      return;
+    }
+
     if (loading) {
       return;
     }
 
+    // Batch context sync to avoid pushing a full payload on every single +/- tap.
     if (syncItemsTimer.current) {
       clearTimeout(syncItemsTimer.current);
     }

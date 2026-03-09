@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { DEFAULT_LANGUAGE } from '../constants';
 import { translations, Translations } from '../localization';
@@ -26,16 +26,21 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const setLanguage = async (lang: string) => {
+  const setLanguage = useCallback(async (lang: string) => {
     const settings = await Settings.load();
     await settings.saveLanguage(lang);
     setLanguageState(lang);
-  };
+  }, []);
 
   const t = translations[language] || translations.en;
 
+  const value = useMemo(
+    () => ({ language, setLanguage, t }),
+    [language, setLanguage, t]
+  );
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

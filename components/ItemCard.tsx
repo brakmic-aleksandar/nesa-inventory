@@ -226,6 +226,7 @@ function ItemCardComponent({
 }: ItemCardProps) {
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<TextInput>(null);
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const isStand = variant === 'stand';
 
   const handleSubmitQuantity = () => {
@@ -240,7 +241,8 @@ function ItemCardComponent({
   const handleOpenInput = () => {
     setInputValue(item.quantity > 0 ? String(item.quantity) : '');
     onOpenQuantityInput();
-    setTimeout(() => inputRef.current?.focus(), TIMING.INPUT_FOCUS_DELAY);
+    if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+    focusTimerRef.current = setTimeout(() => inputRef.current?.focus(), TIMING.INPUT_FOCUS_DELAY);
   };
 
   const cardStyle = isStand ? styles.standCard : styles.shelfCard;

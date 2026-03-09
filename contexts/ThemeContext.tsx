@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -34,21 +34,26 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   };
 
-  const toggleColorScheme = async () => {
-    const newScheme = colorScheme === 'light' ? 'dark' : 'light';
-    setColorScheme(newScheme);
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.THEME, newScheme);
-    } catch (error) {
-      console.error('Failed to save color scheme:', error);
-    }
-  };
+  const toggleColorScheme = useCallback(() => {
+    setColorScheme((prev) => {
+      const newScheme = prev === 'light' ? 'dark' : 'light';
+      AsyncStorage.setItem(STORAGE_KEYS.THEME, newScheme).catch((error) => {
+        console.error('Failed to save color scheme:', error);
+      });
+      return newScheme;
+    });
+  }, []);
 
   const colors = colorScheme === 'light' ? theme.light : theme.dark;
   const isDark = colorScheme === 'dark';
 
+  const value = useMemo(
+    () => ({ colorScheme, toggleColorScheme, colors, isDark }),
+    [colorScheme, toggleColorScheme, colors, isDark]
+  );
+
   return (
-    <ThemeContext.Provider value={{ colorScheme, toggleColorScheme, colors, isDark }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );
