@@ -4,8 +4,5 @@
     "strict": true,
     "jsx": "react-jsx",
     "types": ["expo-router/types"]
-    // "paths": {
-    //   "react": [ "./node_modules/@types/react" ]
-    // }
   }
 }
