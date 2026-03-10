@@ -221,21 +221,24 @@ export default function ShelfScreen() {
     );
   }, []);
 
-  const handleLongPressIn = useCallback((articleId: number, delta: number) => {
-    const key = `${articleId}-${delta}`;
+  const handleLongPressIn = useCallback(
+    (articleId: number, delta: number) => {
+      const key = `${articleId}-${delta}`;
 
-    // Start long press after 500ms
-    const timer = setTimeout(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      // Start rapid increment/decrement
-      const interval = setInterval(() => {
-        updateQuantity(articleId, delta);
-      }, TIMING.RAPID_INCREMENT_INTERVAL);
-      longPressIntervals.current.set(key, interval);
-    }, TIMING.LONG_PRESS_DELAY);
+      // Start long press after 500ms
+      const timer = setTimeout(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        // Start rapid increment/decrement
+        const interval = setInterval(() => {
+          updateQuantity(articleId, delta);
+        }, TIMING.RAPID_INCREMENT_INTERVAL);
+        longPressIntervals.current.set(key, interval);
+      }, TIMING.LONG_PRESS_DELAY);
 
-    longPressTimers.current.set(key, timer);
-  }, [updateQuantity]);
+      longPressTimers.current.set(key, timer);
+    },
+    [updateQuantity]
+  );
 
   const handleLongPressOut = useCallback((articleId: number, delta: number) => {
     const key = `${articleId}-${delta}`;
@@ -262,47 +265,50 @@ export default function ShelfScreen() {
     );
   }, []);
 
-  const renderArticleItem = useCallback(({ item: article }: { item: Article }) => {
-    const scaleAnim = scaleAnims.current.get(article.id) || new Animated.Value(1);
-    if (!scaleAnims.current.has(article.id)) {
-      scaleAnims.current.set(article.id, scaleAnim);
-    }
+  const renderArticleItem = useCallback(
+    ({ item: article }: { item: Article }) => {
+      const scaleAnim = scaleAnims.current.get(article.id) || new Animated.Value(1);
+      if (!scaleAnims.current.has(article.id)) {
+        scaleAnims.current.set(article.id, scaleAnim);
+      }
 
-    return (
-      <ItemCard
-        item={article}
-        colors={shelfCardColors}
-        scaleAnim={scaleAnim}
-        showQuantityInput={quantityInputTarget === article.id}
-        detailsHref={{
-          pathname: '/shelf-item-details',
-          params: {
-            id: String(article.id),
-            name: article.name,
-            image: article.image,
-            quantity: String(article.quantity),
-          },
-        }}
-        variant="shelf"
-        onDecrease={() => updateQuantity(article.id, -1)}
-        onDecreasePressIn={() => handleLongPressIn(article.id, -1)}
-        onDecreasePressOut={() => handleLongPressOut(article.id, -1)}
-        onIncrease={() => updateQuantity(article.id, 1)}
-        onIncreasePressIn={() => handleLongPressIn(article.id, 1)}
-        onIncreasePressOut={() => handleLongPressOut(article.id, 1)}
-        onOpenQuantityInput={() => setQuantityInputTarget(article.id)}
-        onCloseQuantityInput={() => setQuantityInputTarget(null)}
-        onSetQuantity={(quantity) => setDirectQuantity(article.id, quantity)}
-      />
-    );
-  }, [
-    quantityInputTarget,
-    shelfCardColors,
-    setDirectQuantity,
-    updateQuantity,
-    handleLongPressIn,
-    handleLongPressOut,
-  ]);
+      return (
+        <ItemCard
+          item={article}
+          colors={shelfCardColors}
+          scaleAnim={scaleAnim}
+          showQuantityInput={quantityInputTarget === article.id}
+          detailsHref={{
+            pathname: '/shelf-item-details',
+            params: {
+              id: String(article.id),
+              name: article.name,
+              image: article.image,
+              quantity: String(article.quantity),
+            },
+          }}
+          variant="shelf"
+          onDecrease={() => updateQuantity(article.id, -1)}
+          onDecreasePressIn={() => handleLongPressIn(article.id, -1)}
+          onDecreasePressOut={() => handleLongPressOut(article.id, -1)}
+          onIncrease={() => updateQuantity(article.id, 1)}
+          onIncreasePressIn={() => handleLongPressIn(article.id, 1)}
+          onIncreasePressOut={() => handleLongPressOut(article.id, 1)}
+          onOpenQuantityInput={() => setQuantityInputTarget(article.id)}
+          onCloseQuantityInput={() => setQuantityInputTarget(null)}
+          onSetQuantity={(quantity) => setDirectQuantity(article.id, quantity)}
+        />
+      );
+    },
+    [
+      quantityInputTarget,
+      shelfCardColors,
+      setDirectQuantity,
+      updateQuantity,
+      handleLongPressIn,
+      handleLongPressOut,
+    ]
+  );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
