@@ -1,13 +1,12 @@
 {
   "expo": {
-    "name": "nesa-inventory-app",
-    "slug": "nesa-inventory-app",
-    "scheme": "nesainventoryapp",
+    "name": "Maza",
+    "slug": "maza",
+    "scheme": "maza",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/beaver-icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/beaver-splash.png",
       "resizeMode": "contain",
@@ -15,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.brakmic.aleksandar.nesainventoryapp",
+      "bundleIdentifier": "com.brakmic.aleksandar.maza",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -26,11 +25,13 @@
       "expo-mail-composer",
       "expo-asset",
       "expo-image",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-font"
     ],
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "78b31e16-9826-4524-ac60-bf3dfb0b7907"
+        "projectId": "a4109a56-2ab4-4a1e-82f0-4b14e7d4dacb"
       }
     }
   }
