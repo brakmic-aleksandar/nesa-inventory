@@ -8,6 +8,8 @@ import {
   TextInput,
   Animated,
   FlatList,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -33,6 +35,10 @@ interface Article {
   image: string;
 }
 
+const SHELF_COLUMNS = 3;
+const SHELF_ESTIMATED_ROW_HEIGHT = 280;
+const KEYBOARD_CLEARANCE = theme.spacing.xl;
+
 function ShelfLoadingSkeleton() {
   return (
     <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -56,6 +62,10 @@ export default function ShelfScreen() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [quantityInputTarget, setQuantityInputTarget] = useState<number | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const listRef = useRef<FlatList<Article> | null>(null);
+  const listHeightRef = useRef(0);
+  const scrollOffsetRef = useRef(0);
   const scaleAnims = useRef<Map<number, Animated.Value>>(new Map());
   const longPressTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const longPressIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
@@ -140,6 +150,23 @@ export default function ShelfScreen() {
   }, []);
 
   useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
     // Cleanup timers and animation refs on unmount to prevent memory leaks
     return () => {
       longPressTimers.current.forEach((timer) => clearTimeout(timer));
@@ -192,6 +219,39 @@ export default function ShelfScreen() {
       articles.filter((article) => article.name.toLowerCase().includes(searchQuery.toLowerCase())),
     [articles, searchQuery]
   );
+
+  useEffect(() => {
+    if (quantityInputTarget === null || keyboardHeight <= 0) {
+      return;
+    }
+
+    const focusedIndex = filteredArticles.findIndex(
+      (article) => article.id === quantityInputTarget
+    );
+    if (focusedIndex < 0) {
+      return;
+    }
+
+    const focusedRow = Math.floor(focusedIndex / SHELF_COLUMNS);
+    const focusedRowBottom = (focusedRow + 1) * SHELF_ESTIMATED_ROW_HEIGHT;
+    const visibleBottom =
+      scrollOffsetRef.current +
+      Math.max(0, listHeightRef.current - keyboardHeight - KEYBOARD_CLEARANCE);
+
+    if (focusedRowBottom <= visibleBottom) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToIndex({
+        index: focusedIndex,
+        animated: true,
+        viewPosition: 0.2,
+      });
+    }, 30);
+
+    return () => clearTimeout(timer);
+  }, [filteredArticles, keyboardHeight, quantityInputTarget]);
 
   const updateQuantity = useCallback((articleId: number, delta: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -265,8 +325,37 @@ export default function ShelfScreen() {
     );
   }, []);
 
+  const handleOpenQuantityInput = useCallback(
+    (articleId: number, index: number) => {
+      setQuantityInputTarget(articleId);
+
+      if (keyboardHeight <= 0) {
+        return;
+      }
+
+      const focusedRow = Math.floor(index / SHELF_COLUMNS);
+      const focusedRowBottom = (focusedRow + 1) * SHELF_ESTIMATED_ROW_HEIGHT;
+      const visibleBottom =
+        scrollOffsetRef.current +
+        Math.max(0, listHeightRef.current - keyboardHeight - KEYBOARD_CLEARANCE);
+
+      if (focusedRowBottom <= visibleBottom) {
+        return;
+      }
+
+      setTimeout(() => {
+        listRef.current?.scrollToIndex({
+          index,
+          animated: true,
+          viewPosition: 0.2,
+        });
+      }, TIMING.INPUT_FOCUS_DELAY);
+    },
+    [keyboardHeight]
+  );
+
   const renderArticleItem = useCallback(
-    ({ item: article }: { item: Article }) => {
+    ({ item: article, index }: { item: Article; index: number }) => {
       const scaleAnim = scaleAnims.current.get(article.id) || new Animated.Value(1);
       if (!scaleAnims.current.has(article.id)) {
         scaleAnims.current.set(article.id, scaleAnim);
@@ -294,7 +383,7 @@ export default function ShelfScreen() {
           onIncrease={() => updateQuantity(article.id, 1)}
           onIncreasePressIn={() => handleLongPressIn(article.id, 1)}
           onIncreasePressOut={() => handleLongPressOut(article.id, 1)}
-          onOpenQuantityInput={() => setQuantityInputTarget(article.id)}
+          onOpenQuantityInput={() => handleOpenQuantityInput(article.id, index)}
           onCloseQuantityInput={() => setQuantityInputTarget(null)}
           onSetQuantity={(quantity) => setDirectQuantity(article.id, quantity)}
         />
@@ -304,6 +393,7 @@ export default function ShelfScreen() {
       quantityInputTarget,
       shelfCardColors,
       setDirectQuantity,
+      handleOpenQuantityInput,
       updateQuantity,
       handleLongPressIn,
       handleLongPressOut,
@@ -376,18 +466,37 @@ export default function ShelfScreen() {
         />
       ) : (
         <FlatList
+          ref={listRef}
           data={filteredArticles}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderArticleItem}
           numColumns={3}
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            keyboardHeight > 0 ? { paddingBottom: keyboardHeight + theme.spacing.xl } : null,
+          ]}
           columnWrapperStyle={styles.gridContainer}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          onLayout={(event) => {
+            listHeightRef.current = event.nativeEvent.layout.height;
+          }}
+          onScroll={(event) => {
+            scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
           removeClippedSubviews
           initialNumToRender={12}
           maxToRenderPerBatch={18}
           windowSize={7}
           updateCellsBatchingPeriod={32}
+          onScrollToIndexFailed={(info) => {
+            listRef.current?.scrollToOffset({
+              offset: Math.max(0, info.averageItemLength * info.index),
+              animated: true,
+            });
+          }}
         />
       )}
     </SafeAreaView>

@@ -6,6 +6,8 @@ import {
   Animated,
   FlatList,
   ScrollView,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -56,6 +58,7 @@ const STAND_CARD_WIDTH = LAYOUT.STAND_CARD_WIDTH;
 const STAND_CARD_GAP = theme.spacing.md;
 const STAND_CARD_FULL_WIDTH = STAND_CARD_WIDTH + STAND_CARD_GAP;
 const STAND_ROW_HEIGHT = LAYOUT.STAND_ROW_HEIGHT;
+const KEYBOARD_CLEARANCE = theme.spacing.xl;
 
 export default function StandScreen({ cardTitle }: StandScreenProps) {
   const { t } = useLanguage();
@@ -63,7 +66,14 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
   const { getItems, setItems } = useOrder();
   const [rows, setRows] = useState<Item[][]>([]);
   const [loading, setLoading] = useState(true);
-  const [quantityInputTarget, setQuantityInputTarget] = useState<{ rowIndex: number; itemId: number } | null>(null);
+  const [quantityInputTarget, setQuantityInputTarget] = useState<{
+    rowIndex: number;
+    itemId: number;
+  } | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const listRef = useRef<FlatList<Item[]> | null>(null);
+  const listHeightRef = useRef(0);
+  const scrollOffsetRef = useRef(0);
   const scaleAnims = useRef<Map<string, Animated.Value>>(new Map());
   const longPressTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const longPressIntervals = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
@@ -96,6 +106,48 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
   useEffect(() => {
     scaleAnims.current.clear();
   }, [cardTitle]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!quantityInputTarget || keyboardHeight <= 0) {
+      return;
+    }
+
+    const visibleBottom =
+      scrollOffsetRef.current +
+      Math.max(0, listHeightRef.current - keyboardHeight - KEYBOARD_CLEARANCE);
+    const focusedRowBottom = (quantityInputTarget.rowIndex + 1) * STAND_ROW_HEIGHT;
+
+    if (focusedRowBottom <= visibleBottom) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToIndex({
+        index: quantityInputTarget.rowIndex,
+        animated: true,
+        viewPosition: 0.2,
+      });
+    }, 30);
+
+    return () => clearTimeout(timer);
+  }, [keyboardHeight, quantityInputTarget]);
 
   // Load items for the current stand route
   useEffect(() => {
@@ -310,6 +362,34 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
     });
   }, []);
 
+  const handleOpenQuantityInput = useCallback(
+    (rowIndex: number, itemId: number) => {
+      setQuantityInputTarget({ rowIndex, itemId });
+
+      if (keyboardHeight <= 0) {
+        return;
+      }
+
+      const visibleBottom =
+        scrollOffsetRef.current +
+        Math.max(0, listHeightRef.current - keyboardHeight - KEYBOARD_CLEARANCE);
+      const focusedRowBottom = (rowIndex + 1) * STAND_ROW_HEIGHT;
+
+      if (focusedRowBottom <= visibleBottom) {
+        return;
+      }
+
+      setTimeout(() => {
+        listRef.current?.scrollToIndex({
+          index: rowIndex,
+          animated: true,
+          viewPosition: 0.2,
+        });
+      }, TIMING.INPUT_FOCUS_DELAY);
+    },
+    [keyboardHeight]
+  );
+
   const renderStandRow = useCallback(
     ({ item: row, index: rowIndex }: { item: Item[]; index: number }) => {
       const actualRowNumber = row[0]?.rowIndex !== undefined ? row[0].rowIndex + 1 : rowIndex + 1;
@@ -352,7 +432,8 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
                     colors={standCardColors}
                     scaleAnim={scaleAnim}
                     showQuantityInput={
-                      quantityInputTarget?.rowIndex === rowIndex && quantityInputTarget?.itemId === item.id
+                      quantityInputTarget?.rowIndex === rowIndex &&
+                      quantityInputTarget?.itemId === item.id
                     }
                     detailsHref={{
                       pathname: '/stand-item-details',
@@ -371,7 +452,7 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
                     onIncrease={() => updateQuantity(rowIndex, item.id, 1)}
                     onIncreasePressIn={() => handleLongPressIn(rowIndex, item.id, 1)}
                     onIncreasePressOut={() => handleLongPressOut(rowIndex, item.id, 1)}
-                    onOpenQuantityInput={() => setQuantityInputTarget({ rowIndex, itemId: item.id })}
+                    onOpenQuantityInput={() => handleOpenQuantityInput(rowIndex, item.id)}
                     onCloseQuantityInput={() => setQuantityInputTarget(null)}
                     onSetQuantity={(quantity) => setDirectQuantity(rowIndex, item.id, quantity)}
                   />
@@ -386,6 +467,7 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
       standCardColors,
       quantityInputTarget,
       setDirectQuantity,
+      handleOpenQuantityInput,
       updateQuantity,
       handleLongPressIn,
       handleLongPressOut,
@@ -406,15 +488,35 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
         />
       ) : (
         <FlatList
+          ref={listRef}
           data={rows}
           keyExtractor={(row, index) => String(row[0]?.rowIndex ?? index)}
           renderItem={renderStandRow}
           style={styles.scrollView}
+          contentContainerStyle={[
+            styles.listContent,
+            keyboardHeight > 0 ? { paddingBottom: keyboardHeight + theme.spacing.xl } : null,
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          onLayout={(event) => {
+            listHeightRef.current = event.nativeEvent.layout.height;
+          }}
+          onScroll={(event) => {
+            scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
           removeClippedSubviews
           initialNumToRender={6}
           maxToRenderPerBatch={8}
           windowSize={5}
           updateCellsBatchingPeriod={32}
+          onScrollToIndexFailed={(info) => {
+            listRef.current?.scrollToOffset({
+              offset: Math.max(0, info.averageItemLength * info.index),
+              animated: true,
+            });
+          }}
           getItemLayout={(_, index) => ({
             length: STAND_ROW_HEIGHT,
             offset: STAND_ROW_HEIGHT * index,
@@ -432,6 +534,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  listContent: {
+    paddingBottom: theme.spacing.md,
   },
   rowContainer: {
     marginVertical: 10,
