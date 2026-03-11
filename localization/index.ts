@@ -10,6 +10,8 @@ export interface Translations {
     newDataAvailableReload: string;
     searchCustomers: string;
     noCustomersFound: string;
+    ungroupedCustomers: string;
+    customerGroupLabel: string;
   };
   // SelectionScreen
   selectionScreen: {
@@ -153,6 +155,8 @@ export const translations: Record<string, Translations> = {
       newDataAvailableReload: 'New data is available. Tap to reload data.',
       searchCustomers: 'Search customers...',
       noCustomersFound: 'No customers found',
+      ungroupedCustomers: 'Ungrouped',
+      customerGroupLabel: 'Group',
     },
     selectionScreen: {
       orderFor: 'Order for:',
@@ -290,6 +294,8 @@ export const translations: Record<string, Translations> = {
       newDataAvailableReload: 'Novi podaci su dostupni. Dodirnite za ponovno učitavanje.',
       searchCustomers: 'Pretraži kupce...',
       noCustomersFound: 'Kupci nisu pronađeni',
+      ungroupedCustomers: 'Bez grupe',
+      customerGroupLabel: 'Grupa',
     },
     selectionScreen: {
       orderFor: 'Narudžbina za:',
@@ -427,6 +433,8 @@ export const translations: Record<string, Translations> = {
       newDataAvailableReload: 'Hay datos nuevos disponibles. Toque para recargar datos.',
       searchCustomers: 'Buscar clientes...',
       noCustomersFound: 'No se encontraron clientes',
+      ungroupedCustomers: 'Sin grupo',
+      customerGroupLabel: 'Grupo',
     },
     selectionScreen: {
       orderFor: 'Pedido para:',

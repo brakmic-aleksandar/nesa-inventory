@@ -36,12 +36,12 @@ Stores items for each stand (necklaces).
 
 Stores shelf/souvenir items.
 
-| Column      | Type    | Description                    |
-| ----------- | ------- | ------------------------------ |
-| id          | INTEGER | Primary key (auto-increment)   |
-| name        | TEXT    | Item name                      |
-| image_path  | TEXT    | Path to local image (nullable) |
-| order_index | INTEGER | Display order                  |
+| Column      | Type    | Description                     |
+| ----------- | ------- | ------------------------------- |
+| id          | INTEGER | Primary key (auto-increment)    |
+| name        | TEXT    | Item name                       |
+| image_path  | TEXT    | Path to local image (nullable)  |
+| order_index | INTEGER | Derived from row order in Excel |
 
 ## Image Storage
 
@@ -114,7 +114,6 @@ This sheet contains all shelf/souvenir items.
 **Required columns (recommended user-friendly headers):**
 
 - `Item Name` - Item name
-- `Order` - Display order (starts from 1)
 
 **Optional columns:**
 
@@ -123,11 +122,13 @@ This sheet contains all shelf/souvenir items.
 **Example:**
 
 ```
-name            | image_path | order_index
-Magnet Beograd  |            | 0
-Magnet Srbija   |            | 1
-Privezak        |            | 2
+name            | image_path
+Magnet Beograd  |
+Magnet Srbija   |
+Privezak        |
 ```
+
+Order in app follows the row order from this sheet.
 
 ### Sheet 3: Customers
 
@@ -135,17 +136,23 @@ This sheet contains all customer names for quick selection.
 
 **Required columns (recommended user-friendly headers):**
 
-- `Customer Name` - Customer name (unique)
-- `Order` - Display order (starts from 1)
+- `Customer Name` - Customer name
+
+**Optional columns:**
+
+- `Group` - Customer group used for grouping on the start screen
 
 **Example:**
 
 ```
-name                 | order_index
-John Doe             | 0
-Jane Smith           | 1
-Acme Corp            | 2
-Tech Solutions LLC   | 3
+name            | group
+John Doe        | Retail
+Jane Smith      | Retail
+Acme Corp       | Wholesale
+John Doe        | Key Accounts
+```
+
+Customer order in app follows the row order from this sheet. Group order follows first appearance of each group in the file.
 
 ### Sheet 4: Stand Configuration
 
@@ -155,9 +162,9 @@ Optional configuration for stand export formatting.
 
 - `Stand Name` - Exact stand name from Sheet 1
 - `Per Row` - localized yes/no only:
-   - English: `yes` / `no`
-   - Serbian: `da` / `ne`
-   - Spanish: `si` / `no`
+  - English: `yes` / `no`
+  - Serbian: `da` / `ne`
+  - Spanish: `si` / `no`
 
 **Behavior:**
 
@@ -165,7 +172,8 @@ Optional configuration for stand export formatting.
 - `Per Row = false`: single global color columns for the whole stand sheet (default)
 
 If this sheet is missing, or a stand has no row in this sheet, export uses `per_sheet`.
-```
+
+````
 
 ### Embedded Images (Excel only)
 
@@ -191,8 +199,8 @@ If your Stand Items sheet has items with stand names "Štand 1", "Štand 2", and
 
 1. **Open Settings** - Tap the settings icon on the start screen
 2. **Click "Import Data"** button
-3. **Select Excel file** - Choose a properly formatted .xlsx file with three sheets
-4. **Confirm import** - The app will automatically import all three sheets
+3. **Select Excel file** - Choose a properly formatted .xlsx file with required sheets
+4. **Confirm import** - The app will automatically import all sheets
 
 ## Generate Example Excel File
 
@@ -203,8 +211,8 @@ import { excelImport } from './services/ExcelImportService';
 
 const result = await excelImport.generateExampleFiles();
 // File will be saved in: {documentDirectory}/example_templates/
-// - inventory_import_template.xlsx (with three sheets)
-```
+// - inventory_import_template.xlsx (with four sheets)
+````
 
 The generated file includes:
 
@@ -226,7 +234,7 @@ This file can be used as a template for your own data imports.
 - **Encoding:** Excel files handle UTF-8 encoding automatically (supports Cyrillic characters)
 - **Sheet Names:** First sheet is for Stand Items, second sheet is for Shelf Items, third sheet is for Customers. Optional fourth sheet is Stand Configuration.
 - **Column Names:** Header names are flexible. The importer accepts both legacy snake_case headers and user-friendly headers in all supported app languages (English, Serbian, Spanish).
-- **Customer Selection:** On the start screen, customers can be selected from a dropdown list instead of typing names
+- **Customer Selection:** On the start screen, customers are grouped by customer group for faster selection
 
 ## Example Workflow
 
@@ -234,8 +242,8 @@ This file can be used as a template for your own data imports.
 
 1. Create an Excel file (.xlsx) with four sheets:
    - **Sheet 1:** Stand Items with `stand_name`, `name`, `row_index`, `col_index`, etc.
-   - **Sheet 2:** Shelf Items with `name`, `order_index`, etc.
-   - **Sheet 3:** Customers with `name`, `order_index`
+   - **Sheet 2:** Shelf Items with `name` (order follows row order)
+   - **Sheet 3:** Customers with `name` and optional `group` (order follows row order)
    - **Sheet 4:** Stand Configuration with `Stand Name`, `Per Row`
 2. (Optional) Insert images directly into cells in the `image_path` column:
    - Right-click on the cell → Insert → Picture

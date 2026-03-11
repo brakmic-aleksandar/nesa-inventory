@@ -1,6 +1,22 @@
 import * as SQLite from 'expo-sqlite';
 
-import { CREATE_TABLES_SQL, Stand, StandItem, ShelfItem, Customer } from './schema';
+import {
+  CREATE_TABLES_SQL,
+  Stand,
+  StandItem,
+  ShelfItem,
+  Customer,
+  CustomerGroupWithCustomers,
+  CustomerGroup,
+} from './schema';
+
+const DEFAULT_CUSTOMER_GROUP_NAME = 'Ungrouped';
+
+interface CustomerImportInput {
+  name: string;
+  order_index: number;
+  group_name?: string | null;
+}
 
 class QueryCache {
   private cache = new Map<string, { data: unknown; timestamp: number }>();
@@ -40,7 +56,7 @@ class DatabaseService {
   async rollbackTransaction(): Promise<void> {
     await this.execRawSQL('ROLLBACK');
   }
-  private readonly DB_VERSION = 5; // Increment this when schema changes
+  private readonly DB_VERSION = 7; // Increment this when schema changes
 
   async init(): Promise<void> {
     try {
@@ -147,6 +163,121 @@ class DatabaseService {
       }
     }
 
+    // Migration from version 5 to 6: Introduce customer groups (legacy-safe)
+    if (fromVersion < 6) {
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS customer_groups (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE,
+          order_index INTEGER NOT NULL
+        );
+      `);
+
+      await this.db.runAsync(
+        'INSERT OR IGNORE INTO customer_groups (name, order_index) VALUES (?, ?)',
+        [DEFAULT_CUSTOMER_GROUP_NAME, 0]
+      );
+
+      const defaultGroup = await this.db.getFirstAsync<{ id: number }>(
+        'SELECT id FROM customer_groups WHERE name = ?',
+        [DEFAULT_CUSTOMER_GROUP_NAME]
+      );
+
+      if (!defaultGroup) {
+        throw new Error('Failed to resolve default customer group during migration');
+      }
+
+      const customerColumns = await this.db.getAllAsync<{ name: string }>(
+        'PRAGMA table_info(customers)'
+      );
+      const hasGroupId = customerColumns.some((column) => column.name === 'group_id');
+
+      // Keep legacy databases with group_id consistent; newer schemas skip this path.
+      if (hasGroupId) {
+        await this.db.runAsync('UPDATE customers SET group_id = ? WHERE group_id IS NULL', [
+          defaultGroup.id,
+        ]);
+        await this.db.execAsync(
+          'CREATE INDEX IF NOT EXISTS idx_customers_group_id ON customers(group_id)'
+        );
+      }
+
+      await this.db.execAsync(
+        'CREATE INDEX IF NOT EXISTS idx_customer_groups_order ON customer_groups(order_index)'
+      );
+      await this.db.execAsync(
+        'CREATE INDEX IF NOT EXISTS idx_customers_order ON customers(order_index)'
+      );
+    }
+
+    // Migration from version 6 to 7: Move customer-group relation into mapping table
+    if (fromVersion < 7) {
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS customer_group_customers (
+          group_id INTEGER NOT NULL,
+          customer_id INTEGER NOT NULL,
+          order_index INTEGER NOT NULL,
+          PRIMARY KEY (group_id, customer_id),
+          FOREIGN KEY (group_id) REFERENCES customer_groups(id) ON DELETE CASCADE,
+          FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+        );
+      `);
+
+      const customerColumns = await this.db.getAllAsync<{ name: string }>(
+        'PRAGMA table_info(customers)'
+      );
+      const hasGroupId = customerColumns.some((column) => column.name === 'group_id');
+      const defaultGroup = await this.db.getFirstAsync<{ id: number }>(
+        'SELECT id FROM customer_groups WHERE name = ?',
+        [DEFAULT_CUSTOMER_GROUP_NAME]
+      );
+
+      if (!defaultGroup) {
+        throw new Error('Failed to resolve default customer group during v7 migration');
+      }
+
+      if (hasGroupId) {
+        await this.db.execAsync(`
+          INSERT OR IGNORE INTO customer_group_customers (group_id, customer_id, order_index)
+          SELECT group_id, id, order_index FROM customers
+        `);
+
+        await this.db.execAsync(`
+          CREATE TABLE IF NOT EXISTS customers_v7 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            order_index INTEGER NOT NULL
+          );
+        `);
+
+        await this.db.execAsync(`
+          INSERT OR IGNORE INTO customers_v7 (id, name, order_index)
+          SELECT id, name, order_index FROM customers
+        `);
+
+        await this.db.execAsync('DROP TABLE customers');
+        await this.db.execAsync('ALTER TABLE customers_v7 RENAME TO customers');
+      } else {
+        await this.db.runAsync(
+          `
+            INSERT OR IGNORE INTO customer_group_customers (group_id, customer_id, order_index)
+            SELECT ?, id, order_index FROM customers
+          `,
+          [defaultGroup.id]
+        );
+      }
+
+      await this.db.execAsync(
+        'CREATE INDEX IF NOT EXISTS idx_customers_order ON customers(order_index)'
+      );
+      await this.db.execAsync(
+        'CREATE INDEX IF NOT EXISTS idx_customer_group_customers_group ON customer_group_customers(group_id)'
+      );
+      await this.db.execAsync(
+        'CREATE INDEX IF NOT EXISTS idx_customer_group_customers_customer ON customer_group_customers(customer_id)'
+      );
+    }
+
     // Update version
     await this.db.execAsync('DELETE FROM db_version WHERE id = 1');
     await this.db.runAsync('INSERT INTO db_version (id, version) VALUES (?, ?)', [
@@ -179,7 +310,9 @@ class DatabaseService {
     const cached = this.cache.get<Stand | null>(cacheKey);
     if (cached !== undefined) return cached;
 
-    const result = await this.db.getFirstAsync<Stand>('SELECT * FROM stands WHERE name = ?', [name]);
+    const result = await this.db.getFirstAsync<Stand>('SELECT * FROM stands WHERE name = ?', [
+      name,
+    ]);
     this.cache.set(cacheKey, result);
     return result;
   }
@@ -222,7 +355,9 @@ class DatabaseService {
     const cached = this.cache.get<ShelfItem[]>('allShelfItems');
     if (cached) return cached;
 
-    const result = await this.db.getAllAsync<ShelfItem>('SELECT * FROM shelf_items ORDER BY order_index');
+    const result = await this.db.getAllAsync<ShelfItem>(
+      'SELECT * FROM shelf_items ORDER BY order_index'
+    );
     this.cache.set('allShelfItems', result);
     return result;
   }
@@ -245,7 +380,9 @@ class DatabaseService {
       await this.db.runAsync('DELETE FROM stand_items');
       await this.db.runAsync('DELETE FROM stands');
       await this.db.runAsync('DELETE FROM shelf_items');
+      await this.db.runAsync('DELETE FROM customer_group_customers');
       await this.db.runAsync('DELETE FROM customers');
+      await this.db.runAsync('DELETE FROM customer_groups');
       await this.db.execAsync('RELEASE SAVEPOINT clear_all');
     } catch (error) {
       await this.db.execAsync('ROLLBACK TO SAVEPOINT clear_all');
@@ -261,20 +398,131 @@ class DatabaseService {
     const cached = this.cache.get<Customer[]>('allCustomers');
     if (cached) return cached;
 
-    const result = await this.db.getAllAsync<Customer>('SELECT * FROM customers ORDER BY order_index ASC');
+    const result = await this.db.getAllAsync<Customer>(
+      'SELECT * FROM customers ORDER BY order_index ASC'
+    );
     this.cache.set('allCustomers', result);
     return result;
   }
 
-  async importCustomers(customers: Omit<Customer, 'id'>[]): Promise<void> {
+  async getCustomerGroupsWithCustomers(): Promise<CustomerGroupWithCustomers[]> {
     if (!this.db) throw new Error('Database not initialized');
 
+    const cached = this.cache.get<CustomerGroupWithCustomers[]>('customerGroupsWithCustomers');
+    if (cached) return cached;
+
+    const groups = await this.db.getAllAsync<CustomerGroup>(
+      'SELECT id, name, order_index FROM customer_groups ORDER BY order_index ASC'
+    );
+    const members = await this.db.getAllAsync<{
+      group_id: number;
+      customer_id: number;
+      group_customer_order: number;
+      id: number;
+      name: string;
+      order_index: number;
+    }>(
+      `
+        SELECT
+          cgc.group_id,
+          cgc.customer_id,
+          cgc.order_index AS group_customer_order,
+          c.id,
+          c.name,
+          c.order_index
+        FROM customer_group_customers cgc
+        INNER JOIN customers c ON c.id = cgc.customer_id
+        ORDER BY cgc.group_id ASC, cgc.order_index ASC, c.order_index ASC
+      `
+    );
+
+    const customersByGroupId = new Map<number, Customer[]>();
+    members.forEach((member) => {
+      const customerList = customersByGroupId.get(member.group_id) || [];
+      const customer: Customer = {
+        id: member.id,
+        name: member.name,
+        order_index: member.group_customer_order,
+      };
+      customerList.push(customer);
+      customersByGroupId.set(member.group_id, customerList);
+    });
+
+    const result: CustomerGroupWithCustomers[] = groups.map((group) => ({
+      ...group,
+      customers: customersByGroupId.get(group.id) || [],
+    }));
+
+    this.cache.set('customerGroupsWithCustomers', result);
+    return result;
+  }
+
+  async importCustomers(customers: CustomerImportInput[]): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const groups = await this.db.getAllAsync<CustomerGroup>(
+      'SELECT id, name, order_index FROM customer_groups ORDER BY order_index ASC'
+    );
+    const groupByName = new Map<string, CustomerGroup>();
+    groups.forEach((group) => {
+      groupByName.set(group.name.toLowerCase(), group);
+    });
+
+    let nextGroupOrderIndex = groups.length;
+
+    const ensureGroupId = async (groupNameRaw?: string | null): Promise<number> => {
+      const normalizedName = (groupNameRaw || '').trim() || DEFAULT_CUSTOMER_GROUP_NAME;
+      const lookupKey = normalizedName.toLowerCase();
+      const existing = groupByName.get(lookupKey);
+      if (existing) {
+        return existing.id;
+      }
+
+      await this.db!.runAsync(
+        'INSERT OR IGNORE INTO customer_groups (name, order_index) VALUES (?, ?)',
+        [normalizedName, nextGroupOrderIndex]
+      );
+
+      const resolved = await this.db!.getFirstAsync<CustomerGroup>(
+        'SELECT id, name, order_index FROM customer_groups WHERE name = ?',
+        [normalizedName]
+      );
+
+      if (!resolved) {
+        throw new Error(`Failed to create or resolve customer group: ${normalizedName}`);
+      }
+
+      groupByName.set(lookupKey, resolved);
+      nextGroupOrderIndex += 1;
+      return resolved.id;
+    };
+
     for (const customer of customers) {
-      // Use INSERT OR IGNORE to skip duplicates based on UNIQUE constraint
-      await this.db.runAsync('INSERT OR IGNORE INTO customers (name, order_index) VALUES (?, ?)', [
-        customer.name,
-        customer.order_index,
-      ]);
+      const groupId = await ensureGroupId(customer.group_name);
+      const existingCustomer = await this.db.getFirstAsync<{ id: number }>(
+        `
+          SELECT c.id
+          FROM customers c
+          INNER JOIN customer_group_customers cgc ON cgc.customer_id = c.id
+          WHERE cgc.group_id = ? AND LOWER(c.name) = LOWER(?)
+          LIMIT 1
+        `,
+        [groupId, customer.name]
+      );
+
+      let customerId = existingCustomer?.id;
+      if (!customerId) {
+        const insertResult = await this.db.runAsync(
+          'INSERT INTO customers (name, order_index) VALUES (?, ?)',
+          [customer.name, customer.order_index]
+        );
+        customerId = insertResult.lastInsertRowId;
+      }
+
+      await this.db.runAsync(
+        'INSERT OR IGNORE INTO customer_group_customers (group_id, customer_id, order_index) VALUES (?, ?, ?)',
+        [groupId, customerId, customer.order_index]
+      );
     }
     this.cache.invalidate();
   }

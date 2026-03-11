@@ -12,7 +12,7 @@ import { Toast } from '../components/Toast';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { Customer } from '../database/schema';
+import { Customer, CustomerGroupWithCustomers } from '../database/schema';
 import { useCustomers } from '../hooks/useCustomers';
 import { useImportData } from '../hooks/useImportData';
 
@@ -32,11 +32,7 @@ function EmptyCustomersView({
   onImport: () => void;
 }) {
   return (
-    <TouchableOpacity
-      style={styles.emptyCustomerState}
-      onPress={onImport}
-      activeOpacity={0.7}
-    >
+    <TouchableOpacity style={styles.emptyCustomerState} onPress={onImport} activeOpacity={0.7}>
       <Ionicons name="people-outline" size={60} color={colors.textTertiary} />
       <Text style={[styles.emptyCustomerText, { color: colors.textSecondary }]}>
         {t.startScreen.noCustomers}
@@ -53,16 +49,24 @@ function CustomerListView({
   t,
   customerSearch,
   setCustomerSearch,
-  filteredCustomers,
+  filteredGroups,
+  collapsedGroups,
+  onToggleGroup,
+  isSearching,
   onSelect,
 }: {
   colors: ReturnType<typeof useTheme>['colors'];
   t: ReturnType<typeof useLanguage>['t'];
   customerSearch: string;
   setCustomerSearch: (value: string) => void;
-  filteredCustomers: Customer[];
+  filteredGroups: CustomerGroupWithCustomers[];
+  collapsedGroups: Record<number, boolean>;
+  onToggleGroup: (groupId: number) => void;
+  isSearching: boolean;
   onSelect: (customer: Customer) => void;
 }) {
+  const flattenedCount = filteredGroups.reduce((acc, group) => acc + group.customers.length, 0);
+
   return (
     <>
       <View
@@ -95,7 +99,7 @@ function CustomerListView({
         )}
       </View>
 
-      {filteredCustomers.length === 0 ? (
+      {flattenedCount === 0 ? (
         <View style={styles.noResultsContainer}>
           <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
             {t.startScreen.noCustomersFound}
@@ -107,36 +111,63 @@ function CustomerListView({
           contentContainerStyle={styles.customerScrollContent}
           showsVerticalScrollIndicator={true}
         >
-          {filteredCustomers.map((customer) => (
-            <TouchableOpacity
-              key={customer.id}
-              style={[
-                styles.customerCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  ...theme.elevation.low,
-                },
-              ]}
-              activeOpacity={0.7}
-              onPress={() => onSelect(customer)}
-            >
-              <View style={styles.customerCardContent}>
-                <Ionicons
-                  name="person-outline"
-                  size={theme.iconSize.medium}
-                  color={colors.primary}
-                />
-                <Text style={[styles.customerCardText, { color: colors.text }]}>
-                  {customer.name}
+          {filteredGroups.map((group) => (
+            <View key={group.id} style={styles.customerGroupSection}>
+              <TouchableOpacity
+                style={[
+                  styles.groupHeader,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                ]}
+                activeOpacity={0.7}
+                onPress={() => onToggleGroup(group.id)}
+              >
+                <Text style={[styles.customerGroupTitle, { color: colors.text }]}>
+                  {group.name}
                 </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={theme.iconSize.medium}
-                color={colors.textTertiary}
-              />
-            </TouchableOpacity>
+                <Ionicons
+                  name={
+                    (collapsedGroups[group.id] ?? true) && !isSearching
+                      ? 'chevron-down'
+                      : 'chevron-up'
+                  }
+                  size={theme.iconSize.small}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+
+              {(!(collapsedGroups[group.id] ?? true) || isSearching) &&
+                group.customers.map((customer) => (
+                  <TouchableOpacity
+                    key={customer.id}
+                    style={[
+                      styles.customerCard,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        ...theme.elevation.low,
+                      },
+                    ]}
+                    activeOpacity={0.7}
+                    onPress={() => onSelect(customer)}
+                  >
+                    <View style={styles.customerCardContent}>
+                      <Ionicons
+                        name="person-outline"
+                        size={theme.iconSize.medium}
+                        color={colors.primary}
+                      />
+                      <Text style={[styles.customerCardText, { color: colors.text }]}>
+                        {customer.name}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={theme.iconSize.medium}
+                      color={colors.textTertiary}
+                    />
+                  </TouchableOpacity>
+                ))}
+            </View>
           ))}
         </ScrollView>
       )}
@@ -144,12 +175,17 @@ function CustomerListView({
   );
 }
 
-export default function StartScreen({ onStartPress, onSettingsPress, refreshKey }: StartScreenProps) {
+export default function StartScreen({
+  onStartPress,
+  onSettingsPress,
+  refreshKey,
+}: StartScreenProps) {
   const { t } = useLanguage();
   const { colors, isDark } = useTheme();
   const [customerSearch, setCustomerSearch] = useState('');
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<number, boolean>>({});
   const {
-    customers,
+    customerGroups,
     hasNewDataAvailable,
     setHasNewDataAvailable,
     loadCustomers,
@@ -164,9 +200,27 @@ export default function StartScreen({ onStartPress, onSettingsPress, refreshKey 
     }, [refreshStatusAndCustomers])
   );
 
-  const filteredCustomers = customers.filter((customer) =>
-    customer.name.toLowerCase().includes(customerSearch.toLowerCase().trim())
+  const searchTerm = customerSearch.toLowerCase().trim();
+  const isSearching = searchTerm.length > 0;
+  const totalCustomersCount = customerGroups.reduce(
+    (sum, group) => sum + group.customers.length,
+    0
   );
+  const filteredGroups = customerGroups
+    .map((group) => ({
+      ...group,
+      customers: group.name.toLowerCase().includes(searchTerm)
+        ? group.customers
+        : group.customers.filter((customer) => customer.name.toLowerCase().includes(searchTerm)),
+    }))
+    .filter((group) => group.customers.length > 0);
+
+  const handleToggleGroup = useCallback((groupId: number) => {
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
+    }));
+  }, []);
 
   const handleImportCustomers = async () => {
     try {
@@ -191,7 +245,7 @@ export default function StartScreen({ onStartPress, onSettingsPress, refreshKey 
     }
   };
 
-  const handleCustomerSelect = async (customer: (typeof customers)[number]) => {
+  const handleCustomerSelect = async (customer: Customer) => {
     onStartPress(customer.name);
   };
 
@@ -229,7 +283,7 @@ export default function StartScreen({ onStartPress, onSettingsPress, refreshKey 
       </View>
 
       <View style={styles.customerSection}>
-        {customers.length === 0 ? (
+        {totalCustomersCount === 0 ? (
           <EmptyCustomersView colors={colors} t={t} onImport={handleImportCustomers} />
         ) : (
           <CustomerListView
@@ -237,7 +291,10 @@ export default function StartScreen({ onStartPress, onSettingsPress, refreshKey 
             t={t}
             customerSearch={customerSearch}
             setCustomerSearch={setCustomerSearch}
-            filteredCustomers={filteredCustomers}
+            filteredGroups={filteredGroups}
+            collapsedGroups={collapsedGroups}
+            onToggleGroup={handleToggleGroup}
+            isSearching={isSearching}
             onSelect={handleCustomerSelect}
           />
         )}
@@ -328,6 +385,24 @@ const styles = StyleSheet.create({
   },
   customerScrollContent: {
     paddingBottom: theme.spacing.xl,
+  },
+  customerGroupSection: {
+    marginBottom: theme.spacing.md,
+  },
+  groupHeader: {
+    borderRadius: theme.radius.medium,
+    borderWidth: 1,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  customerGroupTitle: {
+    ...theme.typography.bodyMedium,
+    marginLeft: theme.spacing.xs,
+    fontWeight: '600',
   },
   customerCard: {
     borderRadius: theme.radius.medium,

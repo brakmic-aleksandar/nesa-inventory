@@ -172,6 +172,7 @@ interface ExcelShelfItem {
 interface ExcelCustomer {
   name: string;
   order_index: number;
+  group_name: string | null;
 }
 
 interface ImportOptions {
@@ -280,14 +281,12 @@ const STAND_CONFIG_HEADER_ALIASES: HeaderAliasMap<StandConfigColumnKey> = {
     'nombre del stand',
   ],
   perRow: [
-    'per_row',
-    'per row',
-    'is_per_row',
-    'is per row',
-    'po_redu',
-    'po redu',
-    'por_fila',
-    'por fila',
+    'color_per_row',
+    'color per row',
+    'boja_po_redu',
+    'boja po redu',
+    'color_por_fila',
+    'color por fila',
   ],
 };
 
@@ -303,12 +302,11 @@ const STAND_COL_INDEX = {
 
 const SHELF_COL_INDEX = {
   name: 0,
-  orderIndex: 2,
 } as const;
 
 const CUSTOMER_COL_INDEX = {
   name: 0,
-  orderIndex: 1,
+  group: -1,
 } as const;
 
 type StandColumnKey = keyof typeof STAND_COL_INDEX;
@@ -393,28 +391,11 @@ const SHELF_HEADER_ALIASES: HeaderAliasMap<ShelfColumnKey> = {
     'nombre articulo',
     'articulo',
   ],
-  orderIndex: [
-    'order_index',
-    'order index',
-    'order',
-    'redosled',
-    'redosled prikaza',
-    'orden',
-    'orden de visualizacion',
-  ],
 };
 
 const CUSTOMER_HEADER_ALIASES: HeaderAliasMap<CustomerColumnKey> = {
   name: ['name', 'customer name', 'customer', 'kupac', 'ime kupca', 'cliente', 'nombre cliente'],
-  orderIndex: [
-    'order_index',
-    'order index',
-    'order',
-    'redosled',
-    'redosled prikaza',
-    'orden',
-    'orden de visualizacion',
-  ],
+  group: ['group', 'customer group', 'grupa', 'grupa kupca', 'grupo', 'grupo cliente'],
 };
 
 const TEMPLATE_HEADERS: Record<
@@ -436,8 +417,8 @@ const TEMPLATE_HEADERS: Record<
       'Item Code',
       'Image',
     ],
-    shelfItems: ['Item Name', 'Image', 'Order'],
-    customers: ['Customer Name', 'Order'],
+    shelfItems: ['Item Name', 'Image'],
+    customers: ['Customer Name', 'Group'],
   },
   sr: {
     standItems: [
@@ -450,8 +431,8 @@ const TEMPLATE_HEADERS: Record<
       'Šifra Artikla',
       'Slika',
     ],
-    shelfItems: ['Naziv Artikla', 'Slika', 'Redosled'],
-    customers: ['Ime Kupca', 'Redosled'],
+    shelfItems: ['Naziv Artikla', 'Slika'],
+    customers: ['Ime Kupca', 'Grupa'],
   },
   es: {
     standItems: [
@@ -464,8 +445,8 @@ const TEMPLATE_HEADERS: Record<
       'Código de Artículo',
       'Imagen',
     ],
-    shelfItems: ['Nombre Artículo', 'Imagen', 'Orden'],
-    customers: ['Nombre Cliente', 'Orden'],
+    shelfItems: ['Nombre Artículo', 'Imagen'],
+    customers: ['Nombre Cliente', 'Grupo'],
   },
 };
 
@@ -1226,7 +1207,9 @@ export class ExcelImportService {
 
         const hasItemData =
           itemName.length > 0 ||
-          (colorNumberRaw !== undefined && colorNumberRaw !== null && String(colorNumberRaw).trim() !== '') ||
+          (colorNumberRaw !== undefined &&
+            colorNumberRaw !== null &&
+            String(colorNumberRaw).trim() !== '') ||
           (itemCodeRaw !== undefined && itemCodeRaw !== null && String(itemCodeRaw).trim() !== '');
 
         // Some templates include stand separator rows in Sheet 1 with no item/layout data.
@@ -1316,7 +1299,8 @@ export class ExcelImportService {
 
   /**
    * Import shelf items from Excel
-   * Expected columns: name, image_path, order_index
+   * Expected columns: name, image_path
+   * Item order is derived from row order in the file.
    */
   private async importShelfItems(
     xlsxPath: string,
@@ -1344,17 +1328,11 @@ export class ExcelImportService {
 
         this.emitProgress('importingShelfItemRow', { row: totalRows });
 
-        const orderIndexInput = parseInt(String(row[shelfColumnIndex.orderIndex]));
-        if (isNaN(orderIndexInput) || orderIndexInput < 1) {
-          validationError = `Invalid order_index: ${row[shelfColumnIndex.orderIndex]}. Must be >= 1.`;
-          return;
-        }
-
         const extractedPath = imageAssigner.get(excelRow);
         items.push({
           name: String(row[shelfColumnIndex.name] ?? ''),
           image_path: extractedPath ? this.toFileUri(extractedPath) : null,
-          order_index: orderIndexInput - 1,
+          order_index: items.length,
         });
       });
 
@@ -1382,7 +1360,9 @@ export class ExcelImportService {
 
   /**
    * Import customers from Excel
-   * Expected columns: name, order_index
+   * Expected columns: name
+   * Optional columns: group
+   * Customer order is derived from row order in the file.
    */
   private async importCustomers(
     xlsxPath: string,
@@ -1414,15 +1394,10 @@ export class ExcelImportService {
 
         this.emitProgress('importingCustomerRow', { row: totalRows });
 
-        const orderIndexInput = parseInt(String(row[customerColumnIndex.orderIndex]));
-        if (isNaN(orderIndexInput) || orderIndexInput < 1) {
-          validationError = `Invalid order_index: ${row[customerColumnIndex.orderIndex]}. Must be >= 1.`;
-          return;
-        }
-
         customers.push({
           name: String(row[customerColumnIndex.name] ?? '').trim(),
-          order_index: orderIndexInput - 1,
+          order_index: customers.length,
+          group_name: String(row[customerColumnIndex.group] ?? '').trim() || null,
         });
       });
 
@@ -1491,7 +1466,6 @@ export class ExcelImportService {
       shelfItemsWorksheet['!cols'] = [
         { wch: 25 }, // name
         { wch: 30 }, // image_path
-        { wch: 12 }, // order_index
       ];
       // Freeze the first row (header)
       shelfItemsWorksheet['!freeze'] = { rows: 1 };
@@ -1502,7 +1476,7 @@ export class ExcelImportService {
       const customersWorksheet = XLSX.utils.aoa_to_sheet(customersData);
       customersWorksheet['!cols'] = [
         { wch: 30 }, // name
-        { wch: 12 }, // order_index
+        { wch: 20 }, // group
       ];
       // Freeze the first row (header)
       customersWorksheet['!freeze'] = { rows: 1 };

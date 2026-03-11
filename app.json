@@ -33,6 +33,9 @@
       "eas": {
         "projectId": "a4109a56-2ab4-4a1e-82f0-4b14e7d4dacb"
       }
+    },
+    "android": {
+      "package": "com.brakmic.aleksandar.maza"
     }
   }
 }

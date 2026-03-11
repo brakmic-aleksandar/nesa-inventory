@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { db } from '../database/DatabaseService';
-import { Customer } from '../database/schema';
+import { CustomerGroupWithCustomers } from '../database/schema';
 import { Settings } from '../models/Settings';
 import { checkImportedFile } from '../services/ExcelImportService';
 
 export function useCustomers(refreshKey?: number) {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerGroups, setCustomerGroups] = useState<CustomerGroupWithCustomers[]>([]);
   const [hasNewDataAvailable, setHasNewDataAvailable] = useState(false);
 
   const loadCustomers = useCallback(async () => {
-    const loadedCustomers = await db.getAllCustomers();
-    setCustomers(loadedCustomers);
-    return loadedCustomers;
+    const loadedCustomerGroups = await db.getCustomerGroupsWithCustomers();
+    setCustomerGroups(loadedCustomerGroups);
+    return loadedCustomerGroups;
   }, []);
 
   const refreshStatusAndCustomers = useCallback(async () => {
@@ -34,9 +34,9 @@ export function useCustomers(refreshKey?: number) {
           setHasNewDataAvailable(hasChanged);
         }
 
-        const loadedCustomers = await db.getAllCustomers();
+        const loadedCustomers = await db.getCustomerGroupsWithCustomers();
         if (isMounted) {
-          setCustomers(loadedCustomers);
+          setCustomerGroups(loadedCustomers);
         }
       } catch (error) {
         console.error('Error loading customers and status:', error);
@@ -51,7 +51,7 @@ export function useCustomers(refreshKey?: number) {
   }, [refreshKey]);
 
   return {
-    customers,
+    customerGroups,
     hasNewDataAvailable,
     setHasNewDataAvailable,
     loadCustomers,
