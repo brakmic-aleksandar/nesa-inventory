@@ -1,4 +1,12 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  ReactNode,
+} from 'react';
 
 interface OrderItem {
   id: number;
@@ -79,14 +87,10 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const value = useMemo(
     () => ({ getItems, setItems, customer, setCustomer, getAllItems, clearAll }),
-    [getItems, setItems, customer, setCustomer, getAllItems, clearAll]
+    [getItems, setItems, customer, setCustomer, getAllItems, clearAll, itemsBySource]
   );
 
-  return (
-    <OrderContext.Provider value={value}>
-      {children}
-    </OrderContext.Provider>
-  );
+  return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;
 };
 
 export const useOrder = () => {
