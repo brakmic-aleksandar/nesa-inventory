@@ -21,6 +21,69 @@ type ColorColumn = {
 };
 
 export class OrderExportService {
+  private joinColorNames(colorNames: Iterable<string>): string {
+    const uniqueNames: string[] = [];
+    const seen = new Set<string>();
+
+    for (const rawName of colorNames) {
+      const name = rawName.trim();
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      uniqueNames.push(name);
+    }
+
+    return uniqueNames.join('/');
+  }
+
+  private sumPositionQuantity(
+    orderMap: Map<string, number>,
+    sourceName: string,
+    articleName: string,
+    colorOrder: number,
+    colorNames: Iterable<string>
+  ): number {
+    const names = Array.from(colorNames)
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0);
+
+    if (names.length === 0) {
+      const emptyKey = `${sourceName}|${articleName}||${this.getColorOrderKey(colorOrder)}`;
+      return orderMap.get(emptyKey) || 0;
+    }
+
+    return names.reduce((sum, colorName) => {
+      const key = `${sourceName}|${articleName}|${colorName}|${this.getColorOrderKey(colorOrder)}`;
+      return sum + (orderMap.get(key) || 0);
+    }, 0);
+  }
+
+  private autoSizeWorksheetColumns(worksheet: ExcelJS.Worksheet) {
+    worksheet.columns.forEach((column) => {
+      if (!column.eachCell) {
+        return;
+      }
+
+      let maxLength = 0;
+
+      column.eachCell({ includeEmpty: true }, (cell) => {
+        const rawValue = cell.value;
+        let cellText = '';
+
+        if (rawValue == null) {
+          cellText = '';
+        } else if (typeof rawValue === 'object' && 'richText' in rawValue && rawValue.richText) {
+          cellText = rawValue.richText.map((part) => part.text).join('');
+        } else {
+          cellText = String(rawValue);
+        }
+
+        maxLength = Math.max(maxLength, cellText.length);
+      });
+
+      column.width = Math.max(10, maxLength + 2);
+    });
+  }
+
   private splitColorGroups(colorColumns: ColorColumn[], groupSize = 10): ColorColumn[][] {
     const groups: ColorColumn[][] = [];
     for (let i = 0; i < colorColumns.length; i += groupSize) {
@@ -113,27 +176,28 @@ export class OrderExportService {
         const standMode = standModeByName.get(stand.name) ?? 'per_sheet';
 
         // Build unique color columns globally for the stand (used by per_sheet mode)
-        const colorColumnsMap = new Map<number, string>();
-        const rowColorColumnsMap = new Map<number, Map<number, string>>();
-        const standItemByRowArticleColor = new Map<string, (typeof standItems)[number]>();
+        const colorColumnsByOrder = new Map<number, Set<string>>();
+        const positionColors = new Map<string, Set<string>>();
         const itemCodeByRowArticle = new Map<string, string>();
 
         standItems.forEach((item) => {
-          if (item.color_order != null && !colorColumnsMap.has(item.color_order)) {
-            colorColumnsMap.set(item.color_order, item.color_number ?? '');
-          }
-
           if (item.color_order != null) {
-            if (!rowColorColumnsMap.has(item.row_index)) {
-              rowColorColumnsMap.set(item.row_index, new Map<number, string>());
+            if (!colorColumnsByOrder.has(item.color_order)) {
+              colorColumnsByOrder.set(item.color_order, new Set<string>());
             }
-            const rowColorMap = rowColorColumnsMap.get(item.row_index)!;
-            if (!rowColorMap.has(item.color_order)) {
-              rowColorMap.set(item.color_order, item.color_number ?? '');
+            const globalColorSet = colorColumnsByOrder.get(item.color_order)!;
+            if (item.color_number) {
+              globalColorSet.add(item.color_number);
             }
 
-            const rowArticleColorKey = `${item.row_index}|${item.name}|${item.color_order}`;
-            standItemByRowArticleColor.set(rowArticleColorKey, item);
+            const positionKey = `${item.row_index}|${item.name}|${item.color_order}`;
+            if (!positionColors.has(positionKey)) {
+              positionColors.set(positionKey, new Set<string>());
+            }
+            const positionColorSet = positionColors.get(positionKey)!;
+            if (item.color_number) {
+              positionColorSet.add(item.color_number);
+            }
           }
 
           const rowArticleKey = `${item.row_index}|${item.name}`;
@@ -142,7 +206,14 @@ export class OrderExportService {
           }
         });
         // Sort color columns by color_order
-        const colorColumns = this.buildColorColumnsWithGaps(colorColumnsMap);
+        const colorColumns = this.buildColorColumnsWithGaps(
+          new Map(
+            Array.from(colorColumnsByOrder.entries()).map(([order, names]) => [
+              order,
+              this.joinColorNames(names),
+            ])
+          )
+        );
 
         const colorGroups = this.splitColorGroups(colorColumns);
 
@@ -192,12 +263,17 @@ export class OrderExportService {
                 ];
 
                 colorGroup.forEach((col) => {
-                  const standItem = standItemByRowArticleColor.get(
-                    `${rowIndex}|${articleName}|${col.color_order}`
-                  );
-                  if (standItem) {
-                    const orderKey = `${stand.name}|${standItem.name}|${standItem.color_number || ''}|${this.getColorOrderKey(standItem.color_order)}`;
-                    const orderedQty = orderMap.get(orderKey) || 0;
+                  const positionKey = `${rowIndex}|${articleName}|${col.color_order}`;
+                  const positionColorSet = positionColors.get(positionKey);
+
+                  if (positionColorSet) {
+                    const orderedQty = this.sumPositionQuantity(
+                      orderMap,
+                      stand.name,
+                      articleName,
+                      col.color_order,
+                      positionColorSet
+                    );
                     rowData.push(orderedQty > 0 ? orderedQty : '');
                   } else {
                     rowData.push('');
@@ -228,10 +304,11 @@ export class OrderExportService {
                 if (
                   item.row_index === rowIndex &&
                   item.name === articleName &&
-                  item.color_order != null &&
-                  !articleColorMap.has(item.color_order)
+                  item.color_order != null
                 ) {
-                  articleColorMap.set(item.color_order, item.color_number ?? '');
+                  const existing = articleColorMap.get(item.color_order) ?? '';
+                  const combined = this.joinColorNames([existing, item.color_number ?? '']);
+                  articleColorMap.set(item.color_order, combined);
                 }
               });
               const articleColorColumns = this.buildColorColumnsWithGaps(articleColorMap);
@@ -241,16 +318,20 @@ export class OrderExportService {
               const quantityRow: Array<string | number> = ['', ''];
 
               articleColorColumns.forEach((col) => {
-                const standItem = standItemByRowArticleColor.get(
-                  `${rowIndex}|${articleName}|${col.color_order}`
-                );
+                const positionKey = `${rowIndex}|${articleName}|${col.color_order}`;
+                const positionColorSet = positionColors.get(positionKey);
 
                 // First row: color labels next to article/code.
                 colorNameRow.push(col.color_number || '');
 
-                if (standItem) {
-                  const orderKey = `${stand.name}|${standItem.name}|${standItem.color_number || ''}|${this.getColorOrderKey(standItem.color_order)}`;
-                  const orderedQty = orderMap.get(orderKey) || 0;
+                if (positionColorSet) {
+                  const orderedQty = this.sumPositionQuantity(
+                    orderMap,
+                    stand.name,
+                    articleName,
+                    col.color_order,
+                    positionColorSet
+                  );
                   // Second row: corresponding quantities directly below color labels.
                   quantityRow.push(orderedQty > 0 ? orderedQty : '');
                 } else {
@@ -266,37 +347,7 @@ export class OrderExportService {
           });
         }
 
-        const maxPerRowColorColumns = sortedRowIndices.reduce((max, rowIndex) => {
-          const articlesInRow = articlesByRow.get(rowIndex) ?? [];
-          let rowMax = 0;
-
-          articlesInRow.forEach((articleName) => {
-            const articleColorMap = new Map<number, string>();
-            standItems.forEach((item) => {
-              if (
-                item.row_index === rowIndex &&
-                item.name === articleName &&
-                item.color_order != null &&
-                !articleColorMap.has(item.color_order)
-              ) {
-                articleColorMap.set(item.color_order, item.color_number ?? '');
-              }
-            });
-
-            rowMax = Math.max(rowMax, this.buildColorColumnsWithGaps(articleColorMap).length);
-          });
-
-          return Math.max(max, rowMax);
-        }, 0);
-        const maxColsPerGroup =
-          standMode === 'per_row'
-            ? Math.max(maxPerRowColorColumns, 1)
-            : Math.max(...colorGroups.map((g) => g.length), 1);
-        worksheet.getColumn(1).width = 20;
-        worksheet.getColumn(2).width = 12;
-        for (let i = 3; i <= maxColsPerGroup + 2; i++) {
-          worksheet.getColumn(i).width = 10;
-        }
+        this.autoSizeWorksheetColumns(worksheet);
       }
 
       // Create sheet for shelf items (Polica) only if there are quantities
@@ -322,8 +373,7 @@ export class OrderExportService {
             shelfWorksheet.addRow([shelfItem.name, orderedQty]);
           }
         });
-        shelfWorksheet.getColumn(1).width = 30;
-        shelfWorksheet.getColumn(2).width = 10;
+        this.autoSizeWorksheetColumns(shelfWorksheet);
       }
 
       // Save to file system
