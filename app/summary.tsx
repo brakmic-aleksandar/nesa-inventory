@@ -5,7 +5,7 @@ import OrderSummaryScreen from '../screens/OrderSummaryScreen';
 
 export default function SummaryRoute() {
   const router = useRouter();
-  const { customer } = useOrder();
+  const { customer, clearAll } = useOrder();
 
   return (
     <OrderSummaryScreen
@@ -17,7 +17,8 @@ export default function SummaryRoute() {
         }
         router.replace('/selection');
       }}
-      onOrderSent={() => {
+      onDone={() => {
+        clearAll();
         router.dismissAll();
         router.replace('/');
       }}

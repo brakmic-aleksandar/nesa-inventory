@@ -18,6 +18,9 @@ export const STORAGE_KEYS = {
 // Default language
 export const DEFAULT_LANGUAGE = 'es';
 
+// Saved order expiry
+export const SAVED_ORDER_EXPIRY_DAYS = 7;
+
 // Timing constants (ms)
 export const TIMING = {
   TOAST_DURATION: 3000,
@@ -27,6 +30,7 @@ export const TIMING = {
   INPUT_FOCUS_DELAY: 50,
   IMAGE_TRANSITION: 120,
   EXPORT_FILE_CLEANUP_DELAY: 60_000,
+  AUTO_SAVE_DEBOUNCE: 2000,
 } as const;
 
 // Layout constants

@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -7,18 +7,23 @@ import { useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { BeaverLogo } from '../components/BeaverLogo';
+import { CustomerGroupDialog } from '../components/CustomerGroupDialog';
+import { CustomerPickerModal } from '../components/CustomerPickerModal';
 import { ImportProgressModal } from '../components/ImportProgressModal';
 import { Toast } from '../components/Toast';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { db } from '../database/DatabaseService';
 import { Customer, CustomerGroupWithCustomers } from '../database/schema';
 import { useCustomers } from '../hooks/useCustomers';
 import { useImportData } from '../hooks/useImportData';
 
 interface StartScreenProps {
   onStartPress: (text: string) => void;
+  onEditExistingOrder: (orderId: number) => void;
   onSettingsPress: () => void;
+  onSavedOrdersPress: () => void;
   refreshKey?: number;
 }
 
@@ -44,29 +49,23 @@ function EmptyCustomersView({
   );
 }
 
-function CustomerListView({
+function GroupListView({
   colors,
   t,
   customerSearch,
   setCustomerSearch,
   filteredGroups,
-  collapsedGroups,
-  onToggleGroup,
-  isSearching,
-  onSelect,
+  onGroupPress,
+  onCustomCustomer,
 }: {
   colors: ReturnType<typeof useTheme>['colors'];
   t: ReturnType<typeof useLanguage>['t'];
   customerSearch: string;
   setCustomerSearch: (value: string) => void;
   filteredGroups: CustomerGroupWithCustomers[];
-  collapsedGroups: Record<number, boolean>;
-  onToggleGroup: (groupId: number) => void;
-  isSearching: boolean;
-  onSelect: (customer: Customer) => void;
+  onGroupPress: (group: CustomerGroupWithCustomers) => void;
+  onCustomCustomer: () => void;
 }) {
-  const flattenedCount = filteredGroups.reduce((acc, group) => acc + group.customers.length, 0);
-
   return (
     <>
       <View
@@ -99,7 +98,7 @@ function CustomerListView({
         )}
       </View>
 
-      {flattenedCount === 0 ? (
+      {filteredGroups.length === 0 ? (
         <View style={styles.noResultsContainer}>
           <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
             {t.startScreen.noCustomersFound}
@@ -112,63 +111,51 @@ function CustomerListView({
           showsVerticalScrollIndicator={true}
         >
           {filteredGroups.map((group) => (
-            <View key={group.id} style={styles.customerGroupSection}>
-              <TouchableOpacity
-                style={[
-                  styles.groupHeader,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                ]}
-                activeOpacity={0.7}
-                onPress={() => onToggleGroup(group.id)}
-              >
-                <Text style={[styles.customerGroupTitle, { color: colors.text }]}>
-                  {group.name}
-                </Text>
+            <TouchableOpacity
+              key={group.id}
+              style={[
+                styles.groupCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  ...theme.elevation.low,
+                },
+              ]}
+              activeOpacity={0.7}
+              onPress={() => onGroupPress(group)}
+            >
+              <View style={styles.groupCardContent}>
                 <Ionicons
-                  name={
-                    (collapsedGroups[group.id] ?? true) && !isSearching
-                      ? 'chevron-down'
-                      : 'chevron-up'
-                  }
-                  size={theme.iconSize.small}
-                  color={colors.textSecondary}
+                  name="people-outline"
+                  size={theme.iconSize.medium}
+                  color={colors.primary}
                 />
-              </TouchableOpacity>
-
-              {(!(collapsedGroups[group.id] ?? true) || isSearching) &&
-                group.customers.map((customer) => (
-                  <TouchableOpacity
-                    key={customer.id}
-                    style={[
-                      styles.customerCard,
-                      {
-                        backgroundColor: colors.surface,
-                        borderColor: colors.border,
-                        ...theme.elevation.low,
-                      },
-                    ]}
-                    activeOpacity={0.7}
-                    onPress={() => onSelect(customer)}
-                  >
-                    <View style={styles.customerCardContent}>
-                      <Ionicons
-                        name="person-outline"
-                        size={theme.iconSize.medium}
-                        color={colors.primary}
-                      />
-                      <Text style={[styles.customerCardText, { color: colors.text }]}>
-                        {customer.name}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={theme.iconSize.medium}
-                      color={colors.textTertiary}
-                    />
-                  </TouchableOpacity>
-                ))}
-            </View>
+                <View style={styles.groupCardTextContainer}>
+                  <Text style={[styles.groupCardName, { color: colors.text }]}>
+                    {group.name}
+                  </Text>
+                  <Text style={[styles.groupCardCount, { color: colors.textSecondary }]}>
+                    {t.startScreen.customersCount.replace('{count}', String(group.customers.length))}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={theme.iconSize.medium}
+                color={colors.textTertiary}
+              />
+            </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            style={styles.customCustomerLink}
+            activeOpacity={0.7}
+            onPress={onCustomCustomer}
+          >
+            <Ionicons name="pencil-outline" size={theme.iconSize.small} color={colors.textTertiary} />
+            <Text style={[styles.customCustomerLinkText, { color: colors.textTertiary }]}>
+              {t.startScreen.customCustomer}
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       )}
     </>
@@ -177,13 +164,19 @@ function CustomerListView({
 
 export default function StartScreen({
   onStartPress,
+  onEditExistingOrder,
   onSettingsPress,
+  onSavedOrdersPress,
   refreshKey,
 }: StartScreenProps) {
   const { t } = useLanguage();
   const { colors, isDark } = useTheme();
   const [customerSearch, setCustomerSearch] = useState('');
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<number, boolean>>({});
+  const [selectedGroup, setSelectedGroup] = useState<CustomerGroupWithCustomers | null>(null);
+  const [customPickerVisible, setCustomPickerVisible] = useState(false);
+  const [savedOrdersCount, setSavedOrdersCount] = useState(0);
+  const [savedTodayNames, setSavedTodayNames] = useState<Set<string>>(new Set());
+  const [sentTodayNames, setSentTodayNames] = useState<Set<string>>(new Set());
   const {
     customerGroups,
     hasNewDataAvailable,
@@ -197,11 +190,13 @@ export default function StartScreen({
   useFocusEffect(
     useCallback(() => {
       refreshStatusAndCustomers();
+      db.getSavedOrdersCount().then(setSavedOrdersCount).catch(() => {});
+      db.getTodayCustomerNames().then(setSavedTodayNames).catch(() => {});
+      db.getTodaySentCustomerNames().then(setSentTodayNames).catch(() => {});
     }, [refreshStatusAndCustomers])
   );
 
   const searchTerm = customerSearch.toLowerCase().trim();
-  const isSearching = searchTerm.length > 0;
   const totalCustomersCount = customerGroups.reduce(
     (sum, group) => sum + group.customers.length,
     0
@@ -215,11 +210,8 @@ export default function StartScreen({
     }))
     .filter((group) => group.customers.length > 0);
 
-  const handleToggleGroup = useCallback((groupId: number) => {
-    setCollapsedGroups((prev) => ({
-      ...prev,
-      [groupId]: !prev[groupId],
-    }));
+  const handleGroupPress = useCallback((group: CustomerGroupWithCustomers) => {
+    setSelectedGroup(group);
   }, []);
 
   const handleImportCustomers = async () => {
@@ -245,7 +237,44 @@ export default function StartScreen({
     }
   };
 
+  const handleCustomCustomer = () => {
+    setCustomPickerVisible(true);
+  };
+
+  const handleCustomPickerSelect = (name: string) => {
+    setCustomPickerVisible(false);
+    onStartPress(name);
+  };
+
   const handleCustomerSelect = async (customer: Customer) => {
+    setSelectedGroup(null);
+
+    if (savedTodayNames.has(customer.name)) {
+      const existingOrder = await db.getTodayOrderForCustomer(customer.name);
+      if (existingOrder) {
+        Alert.alert(
+          t.startScreen.existingOrderTitle,
+          t.startScreen.existingOrderMessage.replace('{customer}', customer.name),
+          [
+            {
+              text: t.savedOrders.cancel,
+              style: 'cancel',
+            },
+            {
+              text: t.startScreen.editExisting,
+              onPress: () => onEditExistingOrder(existingOrder.id),
+            },
+            {
+              text: t.startScreen.createNew,
+              onPress: () => onStartPress(customer.name),
+            },
+          ],
+          { cancelable: true }
+        );
+        return;
+      }
+    }
+
     onStartPress(customer.name);
   };
 
@@ -254,7 +283,20 @@ export default function StartScreen({
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.settingsButton} onPress={onSettingsPress}>
+        <TouchableOpacity style={styles.headerButton} onPress={onSavedOrdersPress}>
+          <Ionicons name="document-text-outline" size={theme.iconSize.large} color={colors.primary} />
+          {savedOrdersCount > 0 && (
+            <View
+              style={[
+                styles.savedOrdersBadge,
+                { backgroundColor: colors.primary },
+              ]}
+            >
+              <Text style={styles.savedOrdersBadgeText}>{savedOrdersCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.headerButton} onPress={onSettingsPress}>
           <Ionicons name="settings-outline" size={theme.iconSize.large} color={colors.primary} />
           {hasNewDataAvailable && (
             <View
@@ -286,19 +328,34 @@ export default function StartScreen({
         {totalCustomersCount === 0 ? (
           <EmptyCustomersView colors={colors} t={t} onImport={handleImportCustomers} />
         ) : (
-          <CustomerListView
+          <GroupListView
             colors={colors}
             t={t}
             customerSearch={customerSearch}
             setCustomerSearch={setCustomerSearch}
             filteredGroups={filteredGroups}
-            collapsedGroups={collapsedGroups}
-            onToggleGroup={handleToggleGroup}
-            isSearching={isSearching}
-            onSelect={handleCustomerSelect}
+            onGroupPress={handleGroupPress}
+            onCustomCustomer={handleCustomCustomer}
           />
         )}
       </View>
+
+      <CustomerGroupDialog
+        visible={selectedGroup !== null}
+        group={selectedGroup}
+        savedTodayNames={savedTodayNames}
+        sentTodayNames={sentTodayNames}
+        onSelect={handleCustomerSelect}
+        onClose={() => setSelectedGroup(null)}
+      />
+
+      <CustomerPickerModal
+        visible={customPickerVisible}
+        currentName=""
+        onSelect={handleCustomPickerSelect}
+        onClose={() => setCustomPickerVisible(false)}
+        showCustomerList={false}
+      />
 
       <ImportProgressModal visible={importProgress.visible} message={importProgress.message} />
     </SafeAreaView>
@@ -311,12 +368,12 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.xl,
     paddingTop: theme.spacing.md,
     paddingBottom: theme.spacing.md,
   },
-  settingsButton: {
+  headerButton: {
     padding: theme.spacing.sm,
     position: 'relative',
   },
@@ -328,6 +385,22 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: theme.radius.round,
     borderWidth: 1.5,
+  },
+  savedOrdersBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: theme.radius.round,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  savedOrdersBadgeText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   content: {
     alignItems: 'center',
@@ -386,25 +459,7 @@ const styles = StyleSheet.create({
   customerScrollContent: {
     paddingBottom: theme.spacing.xl,
   },
-  customerGroupSection: {
-    marginBottom: theme.spacing.md,
-  },
-  groupHeader: {
-    borderRadius: theme.radius.medium,
-    borderWidth: 1,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  customerGroupTitle: {
-    ...theme.typography.bodyMedium,
-    marginLeft: theme.spacing.xs,
-    fontWeight: '600',
-  },
-  customerCard: {
+  groupCard: {
     borderRadius: theme.radius.medium,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.md,
@@ -413,14 +468,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderWidth: 1,
   },
-  customerCardContent: {
+  groupCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  customerCardText: {
-    ...theme.typography.bodyMedium,
+  groupCardTextContainer: {
     marginLeft: theme.spacing.md,
+    flex: 1,
+  },
+  groupCardName: {
+    ...theme.typography.bodyMedium,
+    fontWeight: '600',
+  },
+  groupCardCount: {
+    ...theme.typography.caption,
+    marginTop: 2,
   },
   emptyCustomerState: {
     flex: 1,
@@ -440,5 +503,15 @@ const styles = StyleSheet.create({
     ...theme.typography.caption,
     marginTop: theme.spacing.sm,
     textAlign: 'center',
+  },
+  customCustomerLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.md,
+    gap: theme.spacing.xs,
+  },
+  customCustomerLinkText: {
+    ...theme.typography.caption,
   },
 });

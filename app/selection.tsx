@@ -6,7 +6,7 @@ import { useOrder } from '../contexts/OrderContext';
 
 export default function SelectionRoute() {
   const router = useRouter();
-  const { customer } = useOrder();
+  const { customer, setCustomer } = useOrder();
   const params = useLocalSearchParams<{ refreshKey?: string }>();
 
   const inputText = customer;
@@ -36,6 +36,7 @@ export default function SelectionRoute() {
       }}
       onCardPress={(cardTitle) => handleCardPress(cardTitle)}
       onShowSummary={() => router.push('/summary')}
+      onCustomerNameChange={setCustomer}
       refreshKey={refreshKey}
     />
   );

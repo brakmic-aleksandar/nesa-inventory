@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
+import { CustomerPickerModal } from '../components/CustomerPickerModal';
 import { SHELF_SOURCE_ID } from '../constants';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -19,6 +19,7 @@ interface SelectionScreenProps {
   onBackPress: () => void;
   onCardPress: (cardTitle: string, cardIndex: number) => void;
   onShowSummary: () => void;
+  onCustomerNameChange?: (name: string) => void;
   refreshKey?: number;
 }
 
@@ -32,14 +33,14 @@ export default function SelectionScreen({
   onBackPress,
   onCardPress,
   onShowSummary,
+  onCustomerNameChange,
   refreshKey,
 }: SelectionScreenProps) {
   const { t } = useLanguage();
   const { colors, isDark } = useTheme();
-  const { getAllItems, clearAll } = useOrder();
-  const navigation = useNavigation();
+  const { clearAll } = useOrder();
   const [stands, setStands] = useState<Stand[]>([]);
-  const allowNextNavigationRef = useRef(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -62,46 +63,21 @@ export default function SelectionScreen({
     };
   }, [refreshKey]);
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (event) => {
-      if (allowNextNavigationRef.current) {
-        allowNextNavigationRef.current = false;
-        return;
-      }
-
-      const allItems = getAllItems();
-      if (allItems.length === 0) {
-        return;
-      }
-
-      event.preventDefault();
-
-      Alert.alert(t.selectionScreen.clearOrderTitle, t.selectionScreen.clearOrderMessage, [
-        {
-          text: t.selectionScreen.keepItems,
-          style: 'cancel',
-          onPress: () => {
-            allowNextNavigationRef.current = true;
-            navigation.dispatch(event.data.action);
-          },
-        },
-        {
-          text: t.selectionScreen.clearItems,
-          style: 'destructive',
-          onPress: () => {
-            clearAll();
-            allowNextNavigationRef.current = true;
-            navigation.dispatch(event.data.action);
-          },
-        },
-      ]);
-    });
-
-    return unsubscribe;
-  }, [navigation, getAllItems, clearAll, t]);
-
   const handleBackPress = () => {
+    clearAll();
     onBackPress();
+  };
+
+  const handleEditCustomerName = () => {
+    if (!onCustomerNameChange) return;
+    setPickerVisible(true);
+  };
+
+  const handlePickerSelect = (name: string) => {
+    setPickerVisible(false);
+    if (onCustomerNameChange && name !== inputText) {
+      onCustomerNameChange(name);
+    }
   };
 
   // Last card is always present
@@ -123,17 +99,27 @@ export default function SelectionScreen({
         <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
           <Ionicons name="arrow-back" size={theme.iconSize.large} color={colors.primary} />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
+        <TouchableOpacity
+          style={styles.headerCenter}
+          onPress={handleEditCustomerName}
+          activeOpacity={0.7}
+          disabled={!onCustomerNameChange}
+        >
           {inputText ? (
-            <Text style={[styles.headerCustomerText, { color: colors.text }]} numberOfLines={1}>
-              {inputText}
-            </Text>
+            <View style={styles.customerNameRow}>
+              <Text style={[styles.headerCustomerText, { color: colors.text }]} numberOfLines={1}>
+                {inputText}
+              </Text>
+              {onCustomerNameChange && (
+                <Ionicons name="pencil" size={theme.iconSize.small} color={colors.textTertiary} />
+              )}
+            </View>
           ) : (
             <Text style={[styles.headerCustomerText, { color: colors.text }]} numberOfLines={1}>
               {t.selectionScreen.orderFor}
             </Text>
           )}
-        </View>
+        </TouchableOpacity>
         <View style={styles.placeholder} />
       </View>
 
@@ -173,6 +159,13 @@ export default function SelectionScreen({
           <Text style={[styles.sendOrderButtonText, { color: colors.textOnColor }]}>{t.selectionScreen.sendOrder}</Text>
         </TouchableOpacity>
       </View>
+
+      <CustomerPickerModal
+        visible={pickerVisible}
+        currentName={inputText}
+        onSelect={handlePickerSelect}
+        onClose={() => setPickerVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -198,8 +191,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: theme.spacing.sm,
   },
+  customerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
   headerCustomerText: {
     ...theme.typography.bodyBold,
+    flexShrink: 1,
   },
   placeholder: {
     width: 44,

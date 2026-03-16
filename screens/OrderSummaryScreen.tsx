@@ -21,99 +21,24 @@ import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useOrder } from '../contexts/OrderContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { db } from '../database/DatabaseService';
 import { useOrderExport } from '../hooks/useOrderExport';
 import { groupOrderItems } from '../utils/orderGrouping';
 
 interface OrderSummaryScreenProps {
   inputText: string;
   onBackPress: () => void;
-  onOrderSent: () => void;
-}
-
-function OrderFooter({
-  colors,
-  t,
-  isSending,
-  isSharing,
-  shareButtonRef,
-  onShare,
-  onConfirm,
-}: {
-  colors: ReturnType<typeof useTheme>['colors'];
-  t: ReturnType<typeof useLanguage>['t'];
-  isSending: boolean;
-  isSharing: boolean;
-  shareButtonRef: React.RefObject<View | null>;
-  onShare: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <View
-      style={[
-        styles.footer,
-        { backgroundColor: colors.surface, borderTopColor: colors.border },
-      ]}
-    >
-      <View ref={shareButtonRef} collapsable={false} style={styles.shareButtonWrapper}>
-        <TouchableOpacity
-          style={[
-            styles.shareButton,
-            { backgroundColor: colors.surfaceSecondary, borderColor: colors.border },
-            isSharing && styles.shareButtonDisabled,
-          ]}
-          onPress={onShare}
-          disabled={isSharing || isSending}
-        >
-          {isSharing ? (
-            <ActivityIndicator size="small" color={colors.textSecondary} />
-          ) : (
-            <>
-              <Ionicons
-                name="share-social-outline"
-                size={theme.iconSize.medium}
-                color={colors.textSecondary}
-              />
-              <Text style={[styles.shareButtonText, { color: colors.textSecondary }]}>
-                {t.orderSummaryScreen.share}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity
-        style={[
-          styles.confirmButton,
-          { backgroundColor: colors.success },
-          isSending && styles.confirmButtonDisabled,
-        ]}
-        onPress={onConfirm}
-        disabled={isSending}
-      >
-        {isSending ? (
-          <>
-            <ActivityIndicator size="small" color={colors.textOnColor} />
-            <Text style={[styles.confirmButtonText, { color: colors.textOnColor }]}>{t.orderSummaryScreen.generating}</Text>
-          </>
-        ) : (
-          <>
-            <Ionicons name="checkmark-circle" size={theme.iconSize.medium} color={colors.textOnColor} />
-            <Text style={[styles.confirmButtonText, { color: colors.textOnColor }]}>{t.orderSummaryScreen.sendByEmail}</Text>
-          </>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
+  onDone: () => void;
 }
 
 export default function OrderSummaryScreen({
   inputText,
   onBackPress,
-  onOrderSent,
+  onDone,
 }: OrderSummaryScreenProps) {
   const { t, language } = useLanguage();
   const { colors, isDark } = useTheme();
-  const { getAllItems, clearAll } = useOrder();
+  const { getAllItems, loadOrderId } = useOrder();
   const { sendOrderByEmail, shareOrderFile } = useOrderExport();
   const [isSending, setIsSending] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -173,9 +98,12 @@ export default function OrderSummaryScreen({
       setIsSending(false);
 
       if (result.success) {
+        if (loadOrderId) {
+          db.markOrderAsSent(loadOrderId).catch((err) =>
+            console.error('Failed to mark order as sent:', err)
+          );
+        }
         Toast.success(t.orderSummaryScreen.emailReady);
-        clearAll();
-        onOrderSent();
       } else if (result.cancelled) {
         Toast.info(t.orderSummaryScreen.emailCancelled);
       } else {
@@ -325,17 +253,78 @@ export default function OrderSummaryScreen({
         )}
       </ScrollView>
 
-      {orderItems.length > 0 && (
-        <OrderFooter
-          colors={colors}
-          t={t}
-          isSending={isSending}
-          isSharing={isSharing}
-          shareButtonRef={shareButtonRef}
-          onShare={handleShareOrder}
-          onConfirm={handleConfirmOrder}
-        />
-      )}
+      <View
+        style={[
+          styles.footer,
+          { backgroundColor: colors.surface, borderTopColor: colors.border },
+        ]}
+      >
+        {orderItems.length > 0 && (
+          <View style={styles.footerTopRow}>
+            <View ref={shareButtonRef} collapsable={false} style={styles.shareButtonWrapper}>
+              <TouchableOpacity
+                style={[
+                  styles.shareButton,
+                  { backgroundColor: colors.surfaceSecondary, borderColor: colors.border },
+                  isSharing && styles.shareButtonDisabled,
+                ]}
+                onPress={handleShareOrder}
+                disabled={isSending || isSharing}
+              >
+                {isSharing ? (
+                  <ActivityIndicator size="small" color={colors.textSecondary} />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="share-social-outline"
+                      size={theme.iconSize.medium}
+                      color={colors.textSecondary}
+                    />
+                    <Text style={[styles.shareButtonText, { color: colors.textSecondary }]}>
+                      {t.orderSummaryScreen.share}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.smallMailButton,
+                { backgroundColor: colors.surfaceSecondary, borderColor: colors.border },
+                isSending && styles.shareButtonDisabled,
+              ]}
+              onPress={handleConfirmOrder}
+              disabled={isSending || isSharing}
+            >
+              {isSending ? (
+                <ActivityIndicator size="small" color={colors.textSecondary} />
+              ) : (
+                <>
+                  <Ionicons
+                    name="mail-outline"
+                    size={theme.iconSize.medium}
+                    color={colors.textSecondary}
+                  />
+                  <Text style={[styles.shareButtonText, { color: colors.textSecondary }]}>
+                    {t.orderSummaryScreen.sendByEmail}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={[styles.confirmButton, { backgroundColor: colors.success }]}
+          onPress={onDone}
+        >
+          <Ionicons name="checkmark-circle" size={theme.iconSize.medium} color={colors.textOnColor} />
+          <Text style={[styles.confirmButtonText, { color: colors.textOnColor }]}>
+            {t.orderSummaryScreen.done}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -447,17 +436,31 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   footer: {
-    flexDirection: 'row',
     padding: theme.spacing.md,
     borderTopWidth: 1,
     gap: theme.spacing.sm,
   },
+  footerTopRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
   shareButtonWrapper: {
     flex: 1,
   },
+  smallMailButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: theme.radius.medium,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: theme.spacing.xs,
+  },
   shareButton: {
     width: '100%',
-    height: 50,
+    height: 44,
     borderRadius: theme.radius.medium,
     justifyContent: 'center',
     alignItems: 'center',
@@ -472,7 +475,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   confirmButton: {
-    flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

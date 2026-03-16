@@ -2,11 +2,14 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
   ReactNode,
 } from 'react';
+
+import { db } from '../database/DatabaseService';
 
 interface OrderItem {
   id: number;
@@ -32,6 +35,8 @@ interface OrderContextType {
     colorOrder?: number | null;
   }[];
   clearAll: () => void;
+  loadOrderId: number | null;
+  loadFromSavedOrder: (orderId: number, customerName: string, itemsBySource: Record<string, OrderItem[]>) => void;
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
@@ -39,6 +44,7 @@ const OrderContext = createContext<OrderContextType | undefined>(undefined);
 export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [itemsBySource, setItemsBySource] = useState<Record<string, OrderItem[]>>({});
   const [customer, setCustomer] = useState('');
+  const [loadOrderId, setLoadOrderId] = useState<number | null>(null);
   const itemsBySourceRef = useRef(itemsBySource);
   itemsBySourceRef.current = itemsBySource;
 
@@ -81,13 +87,74 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return allItems;
   }, []);
 
+
+  const loadFromSavedOrder = useCallback(
+    (orderId: number, customerName: string, savedItemsBySource: Record<string, OrderItem[]>) => {
+      skipAutoSaveRef.current = true;
+      setLoadOrderId(orderId);
+      setCustomer(customerName);
+      setItemsBySource(savedItemsBySource);
+    },
+    []
+  );
+
+  // Auto-save order to DB whenever items change
+  const loadOrderIdRef = useRef(loadOrderId);
+  loadOrderIdRef.current = loadOrderId;
+  const customerRef = useRef(customer);
+  customerRef.current = customer;
+  const skipAutoSaveRef = useRef(false);
+
+  useEffect(() => {
+    if (skipAutoSaveRef.current) {
+      skipAutoSaveRef.current = false;
+      return;
+    }
+
+    const currentCustomer = customerRef.current;
+    if (!currentCustomer.trim()) return;
+
+    const allItems: { name: string; quantity: number; source: string; colorNumber?: string | null; itemCode?: string | null; colorOrder?: number | null }[] = [];
+    Object.entries(itemsBySource).forEach(([source, items]) => {
+      items.forEach((item) => {
+        if (item.quantity > 0) {
+          allItems.push({
+            name: item.name,
+            quantity: item.quantity,
+            source,
+            colorNumber: item.colorNumber,
+            itemCode: item.itemCode,
+            colorOrder: item.colorOrder ?? null,
+          });
+        }
+      });
+    });
+
+    if (allItems.length === 0) return;
+
+    const currentOrderId = loadOrderIdRef.current;
+    if (currentOrderId) {
+      db.updateSavedOrder(currentOrderId, currentCustomer, allItems).catch((err) =>
+        console.error('Auto-save update error:', err)
+      );
+    } else {
+      db.saveOrder(currentCustomer, allItems)
+        .then((newId) => {
+          setLoadOrderId(newId);
+        })
+        .catch((err) => console.error('Auto-save create error:', err));
+    }
+  }, [itemsBySource, customer]);
+
   const clearAll = useCallback(() => {
+    skipAutoSaveRef.current = true;
     setItemsBySource({});
+    setLoadOrderId(null);
   }, []);
 
   const value = useMemo(
-    () => ({ getItems, setItems, customer, setCustomer, getAllItems, clearAll }),
-    [getItems, setItems, customer, setCustomer, getAllItems, clearAll, itemsBySource]
+    () => ({ getItems, setItems, customer, setCustomer, getAllItems, clearAll, loadOrderId, loadFromSavedOrder }),
+    [getItems, setItems, customer, setCustomer, getAllItems, clearAll, loadOrderId, loadFromSavedOrder]
   );
 
   return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;

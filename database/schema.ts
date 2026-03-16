@@ -45,6 +45,26 @@ export interface CustomerGroupMember {
   order_index: number;
 }
 
+export interface SavedOrder {
+  id: number;
+  customer_name: string;
+  created_at: string;
+  expires_at: string;
+  sent_at: string | null;
+}
+
+export interface SavedOrderItem {
+  id: number;
+  order_id: number;
+  name: string;
+  quantity: number;
+  source: string;
+  color_number: string | null;
+  item_code: string | null;
+  color_order: number | null;
+  image: string | null;
+}
+
 export interface CustomerGroupWithCustomers {
   id: number;
   name: string;
@@ -111,4 +131,28 @@ export const CREATE_TABLES_SQL = `
   CREATE INDEX IF NOT EXISTS idx_customers_order ON customers(order_index);
   CREATE INDEX IF NOT EXISTS idx_customer_group_customers_group ON customer_group_customers(group_id);
   CREATE INDEX IF NOT EXISTS idx_customer_group_customers_customer ON customer_group_customers(customer_id);
+
+  CREATE TABLE IF NOT EXISTS saved_orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_name TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS saved_order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    source TEXT NOT NULL,
+    color_number TEXT,
+    item_code TEXT,
+    color_order INTEGER,
+    image TEXT,
+    FOREIGN KEY (order_id) REFERENCES saved_orders(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_saved_order_items_order ON saved_order_items(order_id);
+  CREATE INDEX IF NOT EXISTS idx_saved_orders_expires ON saved_orders(expires_at);
+  CREATE INDEX IF NOT EXISTS idx_saved_orders_created ON saved_orders(created_at);
 `;

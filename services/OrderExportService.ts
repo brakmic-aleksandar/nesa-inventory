@@ -138,191 +138,127 @@ export class OrderExportService {
     return String(value);
   }
 
+  private truncateSheetName(name: string): string {
+    return name.length > 31 ? name.substring(0, 31) : name;
+  }
+
   /**
-   * Generate Excel file from order data using ExcelJS for styling support
+   * Populate a workbook with order sheets. Extracted for reuse in batch export.
    */
-  async generateExcelFile(
+  async populateWorkbook(
+    workbook: ExcelJS.Workbook,
     customerName: string,
     items: OrderItem[],
-    language: string = 'en'
-  ): Promise<string> {
-    try {
-      // Create workbook with ExcelJS
-      const workbook = new ExcelJS.Workbook();
+    language: string = 'en',
+    sheetPrefix?: string
+  ): Promise<void> {
+    const stands = await db.getAllStands();
+    const standModeByName = new Map<string, ColorHeaderMode>();
+    stands.forEach((stand) => {
+      standModeByName.set(
+        stand.name,
+        (stand as any).color_headers_mode === 'per_row' ? 'per_row' : 'per_sheet'
+      );
+    });
 
-      // Get all stands
-      const stands = await db.getAllStands();
-      const standModeByName = new Map<string, ColorHeaderMode>();
-      stands.forEach((stand) => {
-        standModeByName.set(
-          stand.name,
-          (stand as any).color_headers_mode === 'per_row' ? 'per_row' : 'per_sheet'
-        );
+    const orderMap = new Map<string, number>();
+    items.forEach((item) => {
+      const colorOrder = this.getColorOrderKey((item as any).colorOrder);
+      const key = `${item.source}|${item.name}|${item.colorNumber || ''}|${colorOrder}`;
+      const currentQuantity = orderMap.get(key) || 0;
+      orderMap.set(key, currentQuantity + item.quantity);
+    });
+
+    const prefix = sheetPrefix ? `${sheetPrefix} - ` : '';
+
+    for (const stand of stands) {
+      const standItems = await db.getStandItems(stand.id);
+      const standMode = standModeByName.get(stand.name) ?? 'per_sheet';
+
+      const colorColumnsByOrder = new Map<number, Set<string>>();
+      const positionColors = new Map<string, Set<string>>();
+      const itemCodeByRowArticle = new Map<string, string>();
+
+      standItems.forEach((item) => {
+        if (item.color_order != null) {
+          if (!colorColumnsByOrder.has(item.color_order)) {
+            colorColumnsByOrder.set(item.color_order, new Set<string>());
+          }
+          const globalColorSet = colorColumnsByOrder.get(item.color_order)!;
+          if (item.color_number) {
+            globalColorSet.add(item.color_number);
+          }
+
+          const positionKey = `${item.row_index}|${item.name}|${item.color_order}`;
+          if (!positionColors.has(positionKey)) {
+            positionColors.set(positionKey, new Set<string>());
+          }
+          const positionColorSet = positionColors.get(positionKey)!;
+          if (item.color_number) {
+            positionColorSet.add(item.color_number);
+          }
+        }
+
+        const rowArticleKey = `${item.row_index}|${item.name}`;
+        if (!itemCodeByRowArticle.has(rowArticleKey)) {
+          itemCodeByRowArticle.set(rowArticleKey, item.item_code || '');
+        }
       });
 
-      // Create order lookup map for quick access
-      const orderMap = new Map<string, number>();
-      items.forEach((item) => {
-        const colorOrder = this.getColorOrderKey((item as any).colorOrder);
-        const key = `${item.source}|${item.name}|${item.colorNumber || ''}|${colorOrder}`;
-        const currentQuantity = orderMap.get(key) || 0;
-        orderMap.set(key, currentQuantity + item.quantity);
+      const colorColumns = this.buildColorColumnsWithGaps(
+        new Map(
+          Array.from(colorColumnsByOrder.entries()).map(([order, names]) => [
+            order,
+            this.joinColorNames(names),
+          ])
+        )
+      );
+
+      const colorGroups = this.splitColorGroups(colorColumns);
+
+      const articlesByRow = new Map<number, string[]>();
+      standItems.forEach((item) => {
+        if (!articlesByRow.has(item.row_index)) {
+          articlesByRow.set(item.row_index, []);
+        }
+        if (!articlesByRow.get(item.row_index)!.includes(item.name)) {
+          articlesByRow.get(item.row_index)!.push(item.name);
+        }
+      });
+      const sortedRowIndices = Array.from(articlesByRow.keys()).sort((a, b) => a - b);
+
+      const standHasQuantity = standItems.some((item) => {
+        const orderKey = `${stand.name}|${item.name}|${item.color_number || ''}|${this.getColorOrderKey(item.color_order)}`;
+        return (orderMap.get(orderKey) || 0) > 0;
       });
 
-      // Create a sheet for each stand only if it has quantities
-      for (const stand of stands) {
-        const standItems = await db.getStandItems(stand.id);
+      if (!standHasQuantity) continue;
 
-        const standMode = standModeByName.get(stand.name) ?? 'per_sheet';
+      const sheetName = this.truncateSheetName(`${prefix}${stand.name}`);
+      const worksheet = workbook.addWorksheet(sheetName);
+      worksheet.addRow([stand.name]);
+      worksheet.addRow([]);
 
-        // Build unique color columns globally for the stand (used by per_sheet mode)
-        const colorColumnsByOrder = new Map<number, Set<string>>();
-        const positionColors = new Map<string, Set<string>>();
-        const itemCodeByRowArticle = new Map<string, string>();
-
-        standItems.forEach((item) => {
-          if (item.color_order != null) {
-            if (!colorColumnsByOrder.has(item.color_order)) {
-              colorColumnsByOrder.set(item.color_order, new Set<string>());
-            }
-            const globalColorSet = colorColumnsByOrder.get(item.color_order)!;
-            if (item.color_number) {
-              globalColorSet.add(item.color_number);
-            }
-
-            const positionKey = `${item.row_index}|${item.name}|${item.color_order}`;
-            if (!positionColors.has(positionKey)) {
-              positionColors.set(positionKey, new Set<string>());
-            }
-            const positionColorSet = positionColors.get(positionKey)!;
-            if (item.color_number) {
-              positionColorSet.add(item.color_number);
-            }
-          }
-
-          const rowArticleKey = `${item.row_index}|${item.name}`;
-          if (!itemCodeByRowArticle.has(rowArticleKey)) {
-            itemCodeByRowArticle.set(rowArticleKey, item.item_code || '');
-          }
+      if (standMode === 'per_sheet') {
+        colorGroups.forEach((colorGroup, groupIndex) => {
+          this.addColorHeaderRow(worksheet, colorGroup, groupIndex);
         });
-        // Sort color columns by color_order
-        const colorColumns = this.buildColorColumnsWithGaps(
-          new Map(
-            Array.from(colorColumnsByOrder.entries()).map(([order, names]) => [
-              order,
-              this.joinColorNames(names),
-            ])
-          )
-        );
-
-        const colorGroups = this.splitColorGroups(colorColumns);
-
-        // Group articles by row_index to add spacing between physical rows
-        // Group articles by row_index and sort articles and rows
-        const articlesByRow = new Map<number, string[]>();
-        standItems.forEach((item) => {
-          if (!articlesByRow.has(item.row_index)) {
-            articlesByRow.set(item.row_index, []);
-          }
-          if (!articlesByRow.get(item.row_index)!.includes(item.name)) {
-            articlesByRow.get(item.row_index)!.push(item.name);
-          }
-        });
-        // Sort row indices
-        const sortedRowIndices = Array.from(articlesByRow.keys()).sort((a, b) => a - b);
-        // Sort articles alphabetically within each row
-        // Do not sort articles; preserve import order
-
-        const standHasQuantity = standItems.some((item) => {
-          const orderKey = `${stand.name}|${item.name}|${item.color_number || ''}|${this.getColorOrderKey(item.color_order)}`;
-          return (orderMap.get(orderKey) || 0) > 0;
-        });
-
-        if (!standHasQuantity) continue; // Skip sheet creation if no quantities
-
-        // Add worksheet and rows as before
-        const worksheet = workbook.addWorksheet(stand.name);
-        worksheet.addRow([stand.name]);
         worksheet.addRow([]);
 
-        if (standMode === 'per_sheet') {
-          colorGroups.forEach((colorGroup, groupIndex) => {
-            this.addColorHeaderRow(worksheet, colorGroup, groupIndex);
-          });
-          worksheet.addRow([]);
+        sortedRowIndices.forEach((rowIndex) => {
+          const articlesInRow = articlesByRow.get(rowIndex)!;
+          articlesInRow.forEach((articleName) => {
+            const itemCode = itemCodeByRowArticle.get(`${rowIndex}|${articleName}`) || '';
 
-          sortedRowIndices.forEach((rowIndex) => {
-            const articlesInRow = articlesByRow.get(rowIndex)!;
-            articlesInRow.forEach((articleName) => {
-              const itemCode = itemCodeByRowArticle.get(`${rowIndex}|${articleName}`) || '';
+            colorGroups.forEach((colorGroup, groupIndex) => {
+              const rowData: Array<string | number> = [
+                groupIndex === 0 ? articleName : '',
+                groupIndex === 0 ? itemCode : '',
+              ];
 
-              colorGroups.forEach((colorGroup, groupIndex) => {
-                const rowData: Array<string | number> = [
-                  groupIndex === 0 ? articleName : '',
-                  groupIndex === 0 ? itemCode : '',
-                ];
-
-                colorGroup.forEach((col) => {
-                  const positionKey = `${rowIndex}|${articleName}|${col.color_order}`;
-                  const positionColorSet = positionColors.get(positionKey);
-
-                  if (positionColorSet) {
-                    const orderedQty = this.sumPositionQuantity(
-                      orderMap,
-                      stand.name,
-                      articleName,
-                      col.color_order,
-                      positionColorSet
-                    );
-                    rowData.push(orderedQty > 0 ? orderedQty : '');
-                  } else {
-                    rowData.push('');
-                  }
-                });
-
-                const row = worksheet.addRow(rowData);
-                if (groupIndex === 1) {
-                  row.eachCell({ includeEmpty: true }, (cell) => {
-                    cell.fill = {
-                      type: 'pattern',
-                      pattern: 'solid',
-                      fgColor: { argb: 'FFD3D3D3' },
-                    };
-                  });
-                }
-              });
-            });
-
-            worksheet.addRow([]);
-          });
-        } else {
-          sortedRowIndices.forEach((rowIndex) => {
-            const articlesInRow = articlesByRow.get(rowIndex)!;
-            articlesInRow.forEach((articleName) => {
-              const articleColorMap = new Map<number, string>();
-              standItems.forEach((item) => {
-                if (
-                  item.row_index === rowIndex &&
-                  item.name === articleName &&
-                  item.color_order != null
-                ) {
-                  const existing = articleColorMap.get(item.color_order) ?? '';
-                  const combined = this.joinColorNames([existing, item.color_number ?? '']);
-                  articleColorMap.set(item.color_order, combined);
-                }
-              });
-              const articleColorColumns = this.buildColorColumnsWithGaps(articleColorMap);
-
-              const itemCode = itemCodeByRowArticle.get(`${rowIndex}|${articleName}`) || '';
-              const colorNameRow: Array<string | number> = [articleName, itemCode];
-              const quantityRow: Array<string | number> = ['', ''];
-
-              articleColorColumns.forEach((col) => {
+              colorGroup.forEach((col) => {
                 const positionKey = `${rowIndex}|${articleName}|${col.color_order}`;
                 const positionColorSet = positionColors.get(positionKey);
-
-                // First row: color labels next to article/code.
-                colorNameRow.push(col.color_number || '');
 
                 if (positionColorSet) {
                   const orderedQty = this.sumPositionQuantity(
@@ -332,79 +268,190 @@ export class OrderExportService {
                     col.color_order,
                     positionColorSet
                   );
-                  // Second row: corresponding quantities directly below color labels.
-                  quantityRow.push(orderedQty > 0 ? orderedQty : '');
+                  rowData.push(orderedQty > 0 ? orderedQty : '');
                 } else {
-                  quantityRow.push('');
+                  rowData.push('');
                 }
               });
 
-              worksheet.addRow(colorNameRow);
-              worksheet.addRow(quantityRow);
+              const row = worksheet.addRow(rowData);
+              if (groupIndex === 1) {
+                row.eachCell({ includeEmpty: true }, (cell) => {
+                  cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFD3D3D3' },
+                  };
+                });
+              }
+            });
+          });
+
+          worksheet.addRow([]);
+        });
+      } else {
+        sortedRowIndices.forEach((rowIndex) => {
+          const articlesInRow = articlesByRow.get(rowIndex)!;
+          articlesInRow.forEach((articleName) => {
+            const articleColorMap = new Map<number, string>();
+            standItems.forEach((item) => {
+              if (
+                item.row_index === rowIndex &&
+                item.name === articleName &&
+                item.color_order != null
+              ) {
+                const existing = articleColorMap.get(item.color_order) ?? '';
+                const combined = this.joinColorNames([existing, item.color_number ?? '']);
+                articleColorMap.set(item.color_order, combined);
+              }
+            });
+            const articleColorColumns = this.buildColorColumnsWithGaps(articleColorMap);
+
+            const itemCode = itemCodeByRowArticle.get(`${rowIndex}|${articleName}`) || '';
+            const colorNameRow: Array<string | number> = [articleName, itemCode];
+            const quantityRow: Array<string | number> = ['', ''];
+
+            articleColorColumns.forEach((col) => {
+              const positionKey = `${rowIndex}|${articleName}|${col.color_order}`;
+              const positionColorSet = positionColors.get(positionKey);
+
+              colorNameRow.push(col.color_number || '');
+
+              if (positionColorSet) {
+                const orderedQty = this.sumPositionQuantity(
+                  orderMap,
+                  stand.name,
+                  articleName,
+                  col.color_order,
+                  positionColorSet
+                );
+                quantityRow.push(orderedQty > 0 ? orderedQty : '');
+              } else {
+                quantityRow.push('');
+              }
             });
 
-            worksheet.addRow([]);
+            worksheet.addRow(colorNameRow);
+            worksheet.addRow(quantityRow);
           });
-        }
 
-        this.autoSizeWorksheetColumns(worksheet);
+          worksheet.addRow([]);
+        });
       }
 
-      // Create sheet for shelf items (Polica) only if there are quantities
-      const shelfItems = await db.getAllShelfItems();
-      let shelfHasQuantity = false;
+      this.autoSizeWorksheetColumns(worksheet);
+    }
+
+    // Shelf items sheet
+    const shelfItems = await db.getAllShelfItems();
+    let shelfHasQuantity = false;
+    shelfItems.forEach((shelfItem) => {
+      const orderKey = `${SHELF_SOURCE_ID}|${shelfItem.name}||null`;
+      const orderedQty = orderMap.get(orderKey) || 0;
+      if (orderedQty > 0) shelfHasQuantity = true;
+    });
+    if (shelfHasQuantity) {
+      const t = translations[language] || translations.en;
+      const shelfSheetName = this.truncateSheetName(`${prefix}${t.export.shelfSheetName}`);
+      const shelfWorksheet = workbook.addWorksheet(shelfSheetName);
+      shelfWorksheet.addRow([t.export.customerLabel, customerName]);
+      shelfWorksheet.addRow([t.export.dateLabel, new Date().toLocaleDateString()]);
+      shelfWorksheet.addRow([t.export.timeLabel, new Date().toLocaleTimeString()]);
+      shelfWorksheet.addRow([]);
+      shelfWorksheet.addRow([t.export.articleLabel, t.export.quantityLabel]);
       shelfItems.forEach((shelfItem) => {
         const orderKey = `${SHELF_SOURCE_ID}|${shelfItem.name}||null`;
         const orderedQty = orderMap.get(orderKey) || 0;
-        if (orderedQty > 0) shelfHasQuantity = true;
+        if (orderedQty > 0) {
+          shelfWorksheet.addRow([shelfItem.name, orderedQty]);
+        }
       });
-      if (shelfHasQuantity) {
-        const t = translations[language] || translations.en;
-        const shelfWorksheet = workbook.addWorksheet(t.export.shelfSheetName);
-        shelfWorksheet.addRow([t.export.customerLabel, customerName]);
-        shelfWorksheet.addRow([t.export.dateLabel, new Date().toLocaleDateString()]);
-        shelfWorksheet.addRow([t.export.timeLabel, new Date().toLocaleTimeString()]);
-        shelfWorksheet.addRow([]);
-        shelfWorksheet.addRow([t.export.articleLabel, t.export.quantityLabel]);
-        shelfItems.forEach((shelfItem) => {
-          const orderKey = `${SHELF_SOURCE_ID}|${shelfItem.name}||null`;
-          const orderedQty = orderMap.get(orderKey) || 0;
-          if (orderedQty > 0) {
-            shelfWorksheet.addRow([shelfItem.name, orderedQty]);
-          }
-        });
-        this.autoSizeWorksheetColumns(shelfWorksheet);
-      }
-
-      // Save to file system
-      const t = translations[language] || translations.en;
-      const fileName = `${t.export.orderPrefix}_${customerName}_${Date.now()}.xlsx`;
-      const exportRoot = Paths.cache ?? Paths.document;
-      const exportDir = new Directory(exportRoot, 'exports');
-      exportDir.create({ intermediates: true, idempotent: true });
-      const outputFile = new File(exportDir, fileName);
-
-      // Write workbook to buffer then to base64
-      const buffer = await workbook.xlsx.writeBuffer();
-
-      // Convert ArrayBuffer to base64 without using Buffer (React Native compatible)
-      const uint8Array = new Uint8Array(buffer);
-      const chunkSize = 8192;
-      let binaryString = '';
-
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.slice(i, i + chunkSize);
-        binaryString += String.fromCharCode(...chunk);
-      }
-
-      const base64 = btoa(binaryString);
-
-      outputFile.write(base64, { encoding: 'base64' });
-
-      return outputFile.uri;
-    } catch (error) {
-      throw error;
+      this.autoSizeWorksheetColumns(shelfWorksheet);
     }
+  }
+
+  /**
+   * Write a workbook to a file and return the URI.
+   */
+  async writeWorkbookToFile(workbook: ExcelJS.Workbook, fileName: string): Promise<string> {
+    const exportRoot = Paths.cache ?? Paths.document;
+    const exportDir = new Directory(exportRoot, 'exports');
+    exportDir.create({ intermediates: true, idempotent: true });
+    const outputFile = new File(exportDir, fileName);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const uint8Array = new Uint8Array(buffer);
+    const chunkSize = 8192;
+    let binaryString = '';
+
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize);
+      binaryString += String.fromCharCode(...chunk);
+    }
+
+    const base64 = btoa(binaryString);
+    outputFile.write(base64, { encoding: 'base64' });
+
+    return outputFile.uri;
+  }
+
+  /**
+   * Generate Excel file from order data using ExcelJS for styling support
+   */
+  async generateExcelFile(
+    customerName: string,
+    items: OrderItem[],
+    language: string = 'en'
+  ): Promise<string> {
+    const workbook = new ExcelJS.Workbook();
+    await this.populateWorkbook(workbook, customerName, items, language);
+
+    const t = translations[language] || translations.en;
+    const fileName = `${t.export.orderPrefix}_${customerName}_${Date.now()}.xlsx`;
+    return this.writeWorkbookToFile(workbook, fileName);
+  }
+
+  /**
+   * Generate separate Excel files for multiple orders (one file per order).
+   * Returns an array of file URIs for use as email attachments.
+   */
+  async generateBatchExcelFiles(
+    orders: Array<{ customerName: string; items: OrderItem[] }>,
+    language: string = 'en'
+  ): Promise<string[]> {
+    const fileUris: string[] = [];
+    const t = translations[language] || translations.en;
+
+    for (const order of orders) {
+      const workbook = new ExcelJS.Workbook();
+      await this.populateWorkbook(workbook, order.customerName, order.items, language);
+      const fileName = `${t.export.orderPrefix}_${order.customerName}_${Date.now()}.xlsx`;
+      const uri = await this.writeWorkbookToFile(workbook, fileName);
+      fileUris.push(uri);
+    }
+
+    return fileUris;
+  }
+
+  /**
+   * Generate a single combined Excel file for multiple orders.
+   * Each order gets its own sheets prefixed with the customer name.
+   * Used for sharing via native share dialog (which only supports one file).
+   */
+  async generateCombinedBatchExcelFile(
+    orders: Array<{ customerName: string; items: OrderItem[] }>,
+    language: string = 'en'
+  ): Promise<string> {
+    const workbook = new ExcelJS.Workbook();
+    const t = translations[language] || translations.en;
+
+    for (const order of orders) {
+      const prefix = orders.length > 1 ? order.customerName : undefined;
+      await this.populateWorkbook(workbook, order.customerName, order.items, language, prefix);
+    }
+
+    const fileName = `${t.export.orderPrefix}_batch_${Date.now()}.xlsx`;
+    return this.writeWorkbookToFile(workbook, fileName);
   }
 }
 

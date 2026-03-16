@@ -8,6 +8,8 @@ import {
   Customer,
   CustomerGroupWithCustomers,
   CustomerGroup,
+  SavedOrder,
+  SavedOrderItem,
 } from './schema';
 
 const DEFAULT_CUSTOMER_GROUP_NAME = 'Ungrouped';
@@ -56,7 +58,7 @@ class DatabaseService {
   async rollbackTransaction(): Promise<void> {
     await this.execRawSQL('ROLLBACK');
   }
-  private readonly DB_VERSION = 7; // Increment this when schema changes
+  private readonly DB_VERSION = 9; // Increment this when schema changes
 
   async init(): Promise<void> {
     try {
@@ -276,6 +278,58 @@ class DatabaseService {
       await this.db.execAsync(
         'CREATE INDEX IF NOT EXISTS idx_customer_group_customers_customer ON customer_group_customers(customer_id)'
       );
+    }
+
+    // Migration from version 7 to 8: Add saved orders tables
+    if (fromVersion < 8) {
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS saved_orders (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          customer_name TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          expires_at TEXT NOT NULL
+        );
+      `);
+
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS saved_order_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          order_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          quantity INTEGER NOT NULL,
+          source TEXT NOT NULL,
+          color_number TEXT,
+          item_code TEXT,
+          color_order INTEGER,
+          image TEXT,
+          FOREIGN KEY (order_id) REFERENCES saved_orders(id) ON DELETE CASCADE
+        );
+      `);
+
+      await this.db.execAsync(
+        'CREATE INDEX IF NOT EXISTS idx_saved_order_items_order ON saved_order_items(order_id)'
+      );
+      await this.db.execAsync(
+        'CREATE INDEX IF NOT EXISTS idx_saved_orders_expires ON saved_orders(expires_at)'
+      );
+      await this.db.execAsync(
+        'CREATE INDEX IF NOT EXISTS idx_saved_orders_created ON saved_orders(created_at)'
+      );
+
+      // Clean up any expired orders
+      await this.db.runAsync(
+        "DELETE FROM saved_orders WHERE datetime(expires_at) < datetime('now')"
+      );
+    }
+
+    // Migration from version 8 to 9: Add sent_at column to saved_orders
+    if (fromVersion < 9) {
+      const tableInfo = await this.db.getAllAsync<any>('PRAGMA table_info(saved_orders)');
+      const columnNames = tableInfo.map((col: any) => col.name);
+
+      if (!columnNames.includes('sent_at')) {
+        await this.db.execAsync('ALTER TABLE saved_orders ADD COLUMN sent_at TEXT');
+      }
     }
 
     // Update version
@@ -598,6 +652,164 @@ class DatabaseService {
       throw error;
     }
     this.cache.invalidate();
+  }
+
+  // Saved order operations
+  async saveOrder(
+    customerName: string,
+    items: {
+      name: string;
+      quantity: number;
+      source: string;
+      colorNumber?: string | null;
+      itemCode?: string | null;
+      colorOrder?: number | null;
+      image?: string;
+    }[]
+  ): Promise<number> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const createdAt = new Date().toISOString();
+
+    const result = await this.db.runAsync(
+      'INSERT INTO saved_orders (customer_name, created_at, expires_at) VALUES (?, ?, ?)',
+      [customerName, createdAt, expiresAt]
+    );
+    const orderId = result.lastInsertRowId;
+
+    for (const item of items) {
+      await this.db.runAsync(
+        'INSERT INTO saved_order_items (order_id, name, quantity, source, color_number, item_code, color_order, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          orderId,
+          item.name,
+          item.quantity,
+          item.source,
+          item.colorNumber ?? null,
+          item.itemCode ?? null,
+          item.colorOrder ?? null,
+          item.image ?? null,
+        ]
+      );
+    }
+
+    return orderId;
+  }
+
+  async getSavedOrders(): Promise<SavedOrder[]> {
+    if (!this.db) throw new Error('Database not initialized');
+    return await this.db.getAllAsync<SavedOrder>(
+      "SELECT * FROM saved_orders WHERE datetime(expires_at) >= datetime('now') ORDER BY created_at DESC"
+    );
+  }
+
+  async getSavedOrderItems(orderId: number): Promise<SavedOrderItem[]> {
+    if (!this.db) throw new Error('Database not initialized');
+    return await this.db.getAllAsync<SavedOrderItem>(
+      'SELECT * FROM saved_order_items WHERE order_id = ?',
+      [orderId]
+    );
+  }
+
+  async getSavedOrderWithItems(
+    orderId: number
+  ): Promise<{ order: SavedOrder; items: SavedOrderItem[] } | null> {
+    if (!this.db) throw new Error('Database not initialized');
+    const order = await this.db.getFirstAsync<SavedOrder>(
+      'SELECT * FROM saved_orders WHERE id = ?',
+      [orderId]
+    );
+    if (!order) return null;
+    const items = await this.getSavedOrderItems(orderId);
+    return { order, items };
+  }
+
+  async deleteSavedOrder(orderId: number): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    await this.db.runAsync('DELETE FROM saved_orders WHERE id = ?', [orderId]);
+  }
+
+  async deleteExpiredOrders(): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    await this.db.runAsync("DELETE FROM saved_orders WHERE datetime(expires_at) < datetime('now', 'localtime')");
+  }
+
+  async updateSavedOrder(
+    orderId: number,
+    customerName: string,
+    items: {
+      name: string;
+      quantity: number;
+      source: string;
+      colorNumber?: string | null;
+      itemCode?: string | null;
+      colorOrder?: number | null;
+      image?: string;
+    }[]
+  ): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    await this.db.runAsync('UPDATE saved_orders SET customer_name = ? WHERE id = ?', [
+      customerName,
+      orderId,
+    ]);
+    await this.db.runAsync('DELETE FROM saved_order_items WHERE order_id = ?', [orderId]);
+
+    for (const item of items) {
+      await this.db.runAsync(
+        'INSERT INTO saved_order_items (order_id, name, quantity, source, color_number, item_code, color_order, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          orderId,
+          item.name,
+          item.quantity,
+          item.source,
+          item.colorNumber ?? null,
+          item.itemCode ?? null,
+          item.colorOrder ?? null,
+          item.image ?? null,
+        ]
+      );
+    }
+  }
+
+  async getTodayCustomerNames(): Promise<Set<string>> {
+    if (!this.db) throw new Error('Database not initialized');
+    const rows = await this.db.getAllAsync<{ customer_name: string }>(
+      "SELECT DISTINCT customer_name FROM saved_orders WHERE date(created_at) = date('now', 'localtime')"
+    );
+    return new Set(rows.map((r) => r.customer_name));
+  }
+
+  async markOrderAsSent(orderId: number): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    await this.db.runAsync("UPDATE saved_orders SET sent_at = datetime('now') WHERE id = ?", [
+      orderId,
+    ]);
+  }
+
+  async getTodaySentCustomerNames(): Promise<Set<string>> {
+    if (!this.db) throw new Error('Database not initialized');
+    const rows = await this.db.getAllAsync<{ customer_name: string }>(
+      "SELECT DISTINCT customer_name FROM saved_orders WHERE date(created_at) = date('now', 'localtime') AND sent_at IS NOT NULL"
+    );
+    return new Set(rows.map((r) => r.customer_name));
+  }
+
+  async getTodayOrderForCustomer(customerName: string): Promise<SavedOrder | null> {
+    if (!this.db) throw new Error('Database not initialized');
+    return await this.db.getFirstAsync<SavedOrder>(
+      "SELECT * FROM saved_orders WHERE customer_name = ? AND date(created_at) = date('now', 'localtime') ORDER BY created_at DESC LIMIT 1",
+      [customerName]
+    );
+  }
+
+  async getSavedOrdersCount(): Promise<number> {
+    if (!this.db) throw new Error('Database not initialized');
+    const result = await this.db.getFirstAsync<{ count: number }>(
+      "SELECT COUNT(*) as count FROM saved_orders WHERE date(created_at) = date('now', 'localtime')"
+    );
+    return result?.count ?? 0;
   }
 }
 

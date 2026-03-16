@@ -47,6 +47,7 @@ export default function RootLayout() {
         setLoadingText(localized.startScreen.loading);
 
         await db.init();
+        await db.deleteExpiredOrders();
         if (isMounted) {
           setIsDbReady(true);
         }
@@ -91,6 +92,7 @@ export default function RootLayout() {
                 <Stack.Screen name="selection" />
                 <Stack.Screen name="shelf" />
                 <Stack.Screen name="summary" />
+                <Stack.Screen name="saved-orders" />
                 <Stack.Screen
                   name="settings"
                   options={{

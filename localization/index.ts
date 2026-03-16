@@ -12,11 +12,22 @@ export interface Translations {
     noCustomersFound: string;
     ungroupedCustomers: string;
     customerGroupLabel: string;
+    savedOrders: string;
+    customersCount: string;
+    existingOrderTitle: string;
+    existingOrderMessage: string;
+    editExisting: string;
+    createNew: string;
+    customCustomer: string;
+    enterCustomerName: string;
+    customerNamePlaceholder: string;
   };
   // SelectionScreen
   selectionScreen: {
     orderFor: string;
     sendOrder: string;
+    editCustomerName: string;
+    customerNameUpdated: string;
     successTitle: string;
     successMessage: string;
     okButton: string;
@@ -73,6 +84,34 @@ export interface Translations {
     sharingUnavailable: string;
     mailUnavailable: string;
     notAvailable: string;
+    done: string;
+    orderSaved: string;
+  };
+  // SavedOrdersScreen
+  savedOrders: {
+    title: string;
+    noOrders: string;
+    noOrdersMessage: string;
+    edit: string;
+    send: string;
+    delete: string;
+    deleteConfirmTitle: string;
+    deleteConfirmMessage: string;
+    cancel: string;
+    selectMode: string;
+    done: string;
+    sendSelected: string;
+    selectAllToday: string;
+    batchEmailSubject: string;
+    itemCount: string;
+    expiresIn: string;
+    orderSaved: string;
+    orderDeleted: string;
+    searchCustomers: string;
+    noCustomersInGroup: string;
+    today: string;
+    yesterday: string;
+    daysAgo: string;
   };
   // SettingsModal
   settings: {
@@ -157,10 +196,21 @@ export const translations: Record<string, Translations> = {
       noCustomersFound: 'No customers found',
       ungroupedCustomers: 'Ungrouped',
       customerGroupLabel: 'Group',
+      savedOrders: 'Saved Orders',
+      customersCount: '{count} customers',
+      existingOrderTitle: 'Existing Order',
+      existingOrderMessage: '{customer} already has an order today. Would you like to edit the existing order or create a new one?',
+      editExisting: 'Edit Existing',
+      createNew: 'Create New',
+      customCustomer: 'Custom Customer',
+      enterCustomerName: 'Enter Customer Name',
+      customerNamePlaceholder: 'Customer name',
     },
     selectionScreen: {
       orderFor: 'Order for:',
       sendOrder: 'Send Order',
+      editCustomerName: 'Edit Customer Name',
+      customerNameUpdated: 'Customer name updated',
       successTitle: 'Success!',
       successMessage: 'Your order has been sent successfully.',
       okButton: 'OK',
@@ -214,6 +264,33 @@ export const translations: Record<string, Translations> = {
       sharingUnavailable: 'Sharing is not available on this device',
       mailUnavailable: 'Mail composer is not available on this device',
       notAvailable: 'N/A',
+      done: 'Done',
+      orderSaved: 'Order saved',
+    },
+    savedOrders: {
+      title: 'Saved Orders',
+      noOrders: 'No saved orders',
+      noOrdersMessage: 'Orders will appear here after saving',
+      edit: 'Edit',
+      send: 'Send',
+      delete: 'Delete',
+      deleteConfirmTitle: 'Delete Order?',
+      deleteConfirmMessage: 'This order will be permanently deleted.',
+      cancel: 'Cancel',
+      selectMode: 'Select',
+      done: 'Done',
+      sendSelected: 'Send Selected',
+      selectAllToday: 'Select All Today',
+      batchEmailSubject: 'Batch Orders',
+      itemCount: '{count} items',
+      expiresIn: 'Expires in {days} days',
+      orderSaved: 'Order saved',
+      orderDeleted: 'Order deleted',
+      searchCustomers: 'Search customers...',
+      noCustomersInGroup: 'No customers in this group',
+      today: 'Today',
+      yesterday: 'Yesterday',
+      daysAgo: '{days} days ago',
     },
     settings: {
       title: 'Settings',
@@ -296,10 +373,21 @@ export const translations: Record<string, Translations> = {
       noCustomersFound: 'Kupci nisu pronađeni',
       ungroupedCustomers: 'Bez grupe',
       customerGroupLabel: 'Grupa',
+      savedOrders: 'Sačuvane Narudžbine',
+      customersCount: '{count} kupaca',
+      existingOrderTitle: 'Postojeća Narudžbina',
+      existingOrderMessage: '{customer} već ima narudžbinu danas. Želite li da izmenite postojeću ili kreirate novu?',
+      editExisting: 'Izmeni Postojeću',
+      createNew: 'Kreiraj Novu',
+      customCustomer: 'Slobodan Unos',
+      enterCustomerName: 'Unesite Ime Kupca',
+      customerNamePlaceholder: 'Ime kupca',
     },
     selectionScreen: {
       orderFor: 'Narudžbina za:',
       sendOrder: 'Pošalji Narudžbinu',
+      editCustomerName: 'Izmeni Ime Kupca',
+      customerNameUpdated: 'Ime kupca ažurirano',
       successTitle: 'Uspešno!',
       successMessage: 'Vaša narudžbina je uspešno poslata.',
       okButton: 'U redu',
@@ -353,6 +441,33 @@ export const translations: Record<string, Translations> = {
       sharingUnavailable: 'Deljenje nije dostupno na ovom uređaju',
       mailUnavailable: 'Email forma nije dostupna na ovom uređaju',
       notAvailable: 'N/A',
+      done: 'Gotovo',
+      orderSaved: 'Narudžbina sačuvana',
+    },
+    savedOrders: {
+      title: 'Sačuvane Narudžbine',
+      noOrders: 'Nema sačuvanih narudžbina',
+      noOrdersMessage: 'Narudžbine će se pojaviti ovde nakon čuvanja',
+      edit: 'Izmeni',
+      send: 'Pošalji',
+      delete: 'Obriši',
+      deleteConfirmTitle: 'Obrisati narudžbinu?',
+      deleteConfirmMessage: 'Ova narudžbina će biti trajno obrisana.',
+      cancel: 'Otkaži',
+      selectMode: 'Izaberi',
+      done: 'Gotovo',
+      sendSelected: 'Pošalji Izabrane',
+      selectAllToday: 'Izaberi Sve za Danas',
+      batchEmailSubject: 'Grupne Narudžbine',
+      itemCount: '{count} stavki',
+      expiresIn: 'Ističe za {days} dana',
+      orderSaved: 'Narudžbina sačuvana',
+      orderDeleted: 'Narudžbina obrisana',
+      searchCustomers: 'Pretraži kupce...',
+      noCustomersInGroup: 'Nema kupaca u ovoj grupi',
+      today: 'Danas',
+      yesterday: 'Juče',
+      daysAgo: 'Pre {days} dana',
     },
     settings: {
       title: 'Podešavanja',
@@ -435,10 +550,21 @@ export const translations: Record<string, Translations> = {
       noCustomersFound: 'No se encontraron clientes',
       ungroupedCustomers: 'Sin grupo',
       customerGroupLabel: 'Grupo',
+      savedOrders: 'Pedidos Guardados',
+      customersCount: '{count} clientes',
+      existingOrderTitle: 'Pedido Existente',
+      existingOrderMessage: '{customer} ya tiene un pedido hoy. ¿Desea editar el pedido existente o crear uno nuevo?',
+      editExisting: 'Editar Existente',
+      createNew: 'Crear Nuevo',
+      customCustomer: 'Cliente Personalizado',
+      enterCustomerName: 'Ingrese Nombre del Cliente',
+      customerNamePlaceholder: 'Nombre del cliente',
     },
     selectionScreen: {
       orderFor: 'Pedido para:',
       sendOrder: 'Enviar Pedido',
+      editCustomerName: 'Editar Nombre del Cliente',
+      customerNameUpdated: 'Nombre del cliente actualizado',
       successTitle: '¡Éxito!',
       successMessage: 'Su pedido ha sido enviado exitosamente.',
       okButton: 'OK',
@@ -492,6 +618,33 @@ export const translations: Record<string, Translations> = {
       sharingUnavailable: 'Compartir no está disponible en este dispositivo',
       mailUnavailable: 'El editor de correo no está disponible en este dispositivo',
       notAvailable: 'N/A',
+      done: 'Hecho',
+      orderSaved: 'Pedido guardado',
+    },
+    savedOrders: {
+      title: 'Pedidos Guardados',
+      noOrders: 'No hay pedidos guardados',
+      noOrdersMessage: 'Los pedidos aparecerán aquí después de guardarlos',
+      edit: 'Editar',
+      send: 'Enviar',
+      delete: 'Eliminar',
+      deleteConfirmTitle: '¿Eliminar Pedido?',
+      deleteConfirmMessage: 'Este pedido será eliminado permanentemente.',
+      cancel: 'Cancelar',
+      selectMode: 'Seleccionar',
+      done: 'Hecho',
+      sendSelected: 'Enviar Seleccionados',
+      selectAllToday: 'Seleccionar Todo Hoy',
+      batchEmailSubject: 'Pedidos en Lote',
+      itemCount: '{count} artículos',
+      expiresIn: 'Expira en {days} días',
+      orderSaved: 'Pedido guardado',
+      orderDeleted: 'Pedido eliminado',
+      searchCustomers: 'Buscar clientes...',
+      noCustomersInGroup: 'No hay clientes en este grupo',
+      today: 'Hoy',
+      yesterday: 'Ayer',
+      daysAgo: 'Hace {days} días',
     },
     settings: {
       title: 'Configuración',
