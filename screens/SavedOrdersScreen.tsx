@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,8 +7,6 @@ import {
   SectionList,
   Alert,
   ActivityIndicator,
-  findNodeHandle,
-  UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -126,6 +124,7 @@ export default function SavedOrdersScreen({
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [itemCounts, setItemCounts] = useState<Record<number, number>>({});
+  const shareButtonRefs = useRef<Record<number, View | null>>({});
 
   useFocusEffect(
     useCallback(() => {
@@ -206,7 +205,7 @@ export default function SavedOrdersScreen({
     const isSent = !!order.sent_at;
 
     return (
-      <View
+      <TouchableOpacity
         style={[
           styles.orderCard,
           {
@@ -215,13 +214,11 @@ export default function SavedOrdersScreen({
             borderWidth: isSelected ? 2 : 1,
           },
         ]}
+        activeOpacity={0.7}
+        onPress={() => selectMode ? toggleSelect(order.id) : onEditOrder(order.id)}
       >
         {selectMode ? (
-          <TouchableOpacity
-            style={styles.orderCardMain}
-            activeOpacity={0.7}
-            onPress={() => toggleSelect(order.id)}
-          >
+          <View style={styles.orderCardMain}>
             <Ionicons
               name={isSelected ? 'checkbox' : 'square-outline'}
               size={theme.iconSize.large}
@@ -248,7 +245,7 @@ export default function SavedOrdersScreen({
                 </Text>
               </View>
             </View>
-          </TouchableOpacity>
+          </View>
         ) : (
           <>
             <View style={styles.orderInfo}>
@@ -274,23 +271,17 @@ export default function SavedOrdersScreen({
             <View style={styles.actions}>
               <TouchableOpacity
                 style={[styles.actionButton, { backgroundColor: colors.surfaceSecondary }]}
-                onPress={() => onEditOrder(order.id)}
-              >
-                <Ionicons name="pencil-outline" size={theme.iconSize.small} color={colors.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.surfaceSecondary }]}
                 onPress={() => onSendOrder(order.id)}
               >
                 <Ionicons name="paper-plane-outline" size={theme.iconSize.small} color={colors.success} />
               </TouchableOpacity>
               <TouchableOpacity
+                ref={(ref) => { shareButtonRefs.current[order.id] = ref; }}
                 style={[styles.actionButton, { backgroundColor: colors.surfaceSecondary }]}
-                onPress={(e) => {
-                  const target = e.currentTarget;
-                  const nodeHandle = findNodeHandle(target as any);
-                  if (nodeHandle) {
-                    UIManager.measureInWindow(nodeHandle, (x, y, width, height) => {
+                onPress={() => {
+                  const ref = shareButtonRefs.current[order.id];
+                  if (ref) {
+                    ref.measureInWindow((x, y, width, height) => {
                       onShareOrder(order.id, { x, y, width, height });
                     });
                   } else {
@@ -309,7 +300,7 @@ export default function SavedOrdersScreen({
             </View>
           </>
         )}
-      </View>
+      </TouchableOpacity>
     );
   };
 

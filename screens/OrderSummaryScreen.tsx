@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  findNodeHandle,
-  UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -70,13 +68,12 @@ export default function OrderSummaryScreen({
       }
     | undefined
   > => {
-    const nodeHandle = findNodeHandle(shareButtonRef.current);
-    if (!nodeHandle) {
+    if (!shareButtonRef.current) {
       return undefined;
     }
 
     return new Promise((resolve) => {
-      UIManager.measureInWindow(nodeHandle, (x, y, width, height) => {
+      shareButtonRef.current!.measureInWindow((x, y, width, height) => {
         if (!width || !height) {
           resolve(undefined);
           return;
