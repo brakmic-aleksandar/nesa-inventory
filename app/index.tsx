@@ -2,6 +2,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import { useOrder } from '../contexts/OrderContext';
 import { db } from '../database/DatabaseService';
+import { useUpdateCheck } from '../hooks/useUpdateCheck';
 import { SavedOrderItem } from '../database/schema';
 import StartScreen from '../screens/StartScreen';
 
@@ -46,6 +47,7 @@ export default function StartRoute() {
   const router = useRouter();
   const params = useLocalSearchParams<{ refreshKey?: string }>();
   const { setCustomer, loadFromSavedOrder } = useOrder();
+  useUpdateCheck();
 
   const dataRefreshKey = params.refreshKey ? Number(params.refreshKey) || 0 : 0;
 

@@ -180,6 +180,13 @@ export interface Translations {
     currentQuantity: string;
     itemId: string;
   };
+  // Update Check
+  updateCheck: {
+    title: string;
+    message: string;
+    update: string;
+    later: string;
+  };
 }
 
 export const translations: Record<string, Translations> = {
@@ -199,7 +206,8 @@ export const translations: Record<string, Translations> = {
       savedOrders: 'Saved Orders',
       customersCount: '{count} customers',
       existingOrderTitle: 'Existing Order',
-      existingOrderMessage: '{customer} already has an order today. Would you like to edit the existing order or create a new one?',
+      existingOrderMessage:
+        '{customer} already has an order today. Would you like to edit the existing order or create a new one?',
       editExisting: 'Edit Existing',
       createNew: 'Create New',
       customCustomer: 'Custom Customer',
@@ -359,6 +367,12 @@ export const translations: Record<string, Translations> = {
       currentQuantity: 'Current Quantity',
       itemId: 'Item ID',
     },
+    updateCheck: {
+      title: 'Update Available',
+      message: 'A new version ({version}) is available. Would you like to update?',
+      update: 'Update',
+      later: 'Later',
+    },
   },
   sr: {
     startScreen: {
@@ -376,7 +390,8 @@ export const translations: Record<string, Translations> = {
       savedOrders: 'Sačuvane Narudžbine',
       customersCount: '{count} kupaca',
       existingOrderTitle: 'Postojeća Narudžbina',
-      existingOrderMessage: '{customer} već ima narudžbinu danas. Želite li da izmenite postojeću ili kreirate novu?',
+      existingOrderMessage:
+        '{customer} već ima narudžbinu danas. Želite li da izmenite postojeću ili kreirate novu?',
       editExisting: 'Izmeni Postojeću',
       createNew: 'Kreiraj Novu',
       customCustomer: 'Slobodan Unos',
@@ -536,6 +551,12 @@ export const translations: Record<string, Translations> = {
       currentQuantity: 'Trenutna Količina',
       itemId: 'ID Artikla',
     },
+    updateCheck: {
+      title: 'Dostupno Ažuriranje',
+      message: 'Nova verzija ({version}) je dostupna. Želite li da ažurirate?',
+      update: 'Ažuriraj',
+      later: 'Kasnije',
+    },
   },
   es: {
     startScreen: {
@@ -553,7 +574,8 @@ export const translations: Record<string, Translations> = {
       savedOrders: 'Pedidos Guardados',
       customersCount: '{count} clientes',
       existingOrderTitle: 'Pedido Existente',
-      existingOrderMessage: '{customer} ya tiene un pedido hoy. ¿Desea editar el pedido existente o crear uno nuevo?',
+      existingOrderMessage:
+        '{customer} ya tiene un pedido hoy. ¿Desea editar el pedido existente o crear uno nuevo?',
       editExisting: 'Editar Existente',
       createNew: 'Crear Nuevo',
       customCustomer: 'Cliente Personalizado',
@@ -713,6 +735,12 @@ export const translations: Record<string, Translations> = {
       itemCode: 'Código de Artículo',
       currentQuantity: 'Cantidad Actual',
       itemId: 'ID de Artículo',
+    },
+    updateCheck: {
+      title: 'Actualización Disponible',
+      message: 'Una nueva versión ({version}) está disponible. ¿Desea actualizar?',
+      update: 'Actualizar',
+      later: 'Después',
     },
   },
 };
