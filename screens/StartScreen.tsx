@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -193,6 +193,12 @@ export default function StartScreen({
       db.getSavedOrdersCount().then(setSavedOrdersCount).catch(() => {});
       db.getTodayCustomerNames().then(setSavedTodayNames).catch(() => {});
       db.getTodaySentCustomerNames().then(setSentTodayNames).catch(() => {});
+
+      const interval = setInterval(() => {
+        refreshStatusAndCustomers();
+      }, 30000);
+
+      return () => clearInterval(interval);
     }, [refreshStatusAndCustomers])
   );
 
