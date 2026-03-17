@@ -189,6 +189,29 @@ export default function SavedOrdersScreen({
     onBatchSend(Array.from(selectedIds));
   };
 
+  const handleBatchDelete = () => {
+    if (selectedIds.size === 0) return;
+    Alert.alert(
+      t.savedOrders.deleteSelectedConfirmTitle,
+      t.savedOrders.deleteSelectedConfirmMessage.replace('{count}', String(selectedIds.size)),
+      [
+        { text: t.savedOrders.cancel, style: 'cancel' },
+        {
+          text: t.savedOrders.deleteSelected,
+          style: 'destructive',
+          onPress: async () => {
+            for (const id of selectedIds) {
+              await deleteOrder(id);
+            }
+            exitSelectMode();
+            await refresh();
+            Toast.success(t.savedOrders.orderDeleted);
+          },
+        },
+      ]
+    );
+  };
+
   const exitSelectMode = () => {
     setSelectMode(false);
     setSelectedIds(new Set());
@@ -386,15 +409,23 @@ export default function SavedOrdersScreen({
             { backgroundColor: colors.surface, borderTopColor: colors.border },
           ]}
         >
-          <TouchableOpacity
-            style={[styles.batchSendButton, { backgroundColor: colors.success }]}
-            onPress={handleBatchSend}
-          >
-            <Ionicons name="send" size={theme.iconSize.medium} color={colors.textOnColor} />
-            <Text style={[styles.batchSendText, { color: colors.textOnColor }]}>
-              {t.savedOrders.sendSelected} ({selectedIds.size})
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.batchButtons}>
+            <TouchableOpacity
+              style={[styles.batchDeleteButton, { backgroundColor: colors.error }]}
+              onPress={handleBatchDelete}
+            >
+              <Ionicons name="trash" size={theme.iconSize.medium} color={colors.textOnColor} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.batchSendButton, { backgroundColor: colors.success }]}
+              onPress={handleBatchSend}
+            >
+              <Ionicons name="send" size={theme.iconSize.medium} color={colors.textOnColor} />
+              <Text style={[styles.batchSendText, { color: colors.textOnColor }]}>
+                {t.savedOrders.sendSelected} ({selectedIds.size})
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </SafeAreaView>
@@ -532,7 +563,19 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     borderTopWidth: 1,
   },
+  batchButtons: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+  },
+  batchDeleteButton: {
+    width: 50,
+    height: 50,
+    borderRadius: theme.radius.medium,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   batchSendButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

@@ -101,6 +101,9 @@ export interface Translations {
     selectMode: string;
     done: string;
     sendSelected: string;
+    deleteSelected: string;
+    deleteSelectedConfirmTitle: string;
+    deleteSelectedConfirmMessage: string;
     selectAllToday: string;
     batchEmailSubject: string;
     itemCount: string;
@@ -288,6 +291,9 @@ export const translations: Record<string, Translations> = {
       selectMode: 'Select',
       done: 'Done',
       sendSelected: 'Send Selected',
+      deleteSelected: 'Delete Selected',
+      deleteSelectedConfirmTitle: 'Delete Orders?',
+      deleteSelectedConfirmMessage: '{count} orders will be permanently deleted.',
       selectAllToday: 'Select All Today',
       batchEmailSubject: 'Batch Orders',
       itemCount: '{count} items',
@@ -472,6 +478,9 @@ export const translations: Record<string, Translations> = {
       selectMode: 'Izaberi',
       done: 'Gotovo',
       sendSelected: 'Pošalji Izabrane',
+      deleteSelected: 'Obriši Izabrane',
+      deleteSelectedConfirmTitle: 'Obrisati narudžbine?',
+      deleteSelectedConfirmMessage: '{count} narudžbina će biti trajno obrisano.',
       selectAllToday: 'Izaberi Sve za Danas',
       batchEmailSubject: 'Grupne Narudžbine',
       itemCount: '{count} stavki',
@@ -656,6 +665,9 @@ export const translations: Record<string, Translations> = {
       selectMode: 'Seleccionar',
       done: 'Hecho',
       sendSelected: 'Enviar Seleccionados',
+      deleteSelected: 'Eliminar Seleccionados',
+      deleteSelectedConfirmTitle: '¿Eliminar Pedidos?',
+      deleteSelectedConfirmMessage: '{count} pedidos serán eliminados permanentemente.',
       selectAllToday: 'Seleccionar Todo Hoy',
       batchEmailSubject: 'Pedidos en Lote',
       itemCount: '{count} artículos',
