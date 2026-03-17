@@ -15,13 +15,12 @@ export function useCustomers(refreshKey?: number) {
     return loadedCustomerGroups;
   }, []);
 
-  const refreshStatusAndCustomers = useCallback(async () => {
+  const checkForNewData = useCallback(async () => {
     const hasChanged = await checkImportedFile();
     await Settings.loadImportedFileBookmark();
     setHasNewDataAvailable(hasChanged);
-    await loadCustomers();
     return hasChanged;
-  }, [loadCustomers]);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -55,6 +54,6 @@ export function useCustomers(refreshKey?: number) {
     hasNewDataAvailable,
     setHasNewDataAvailable,
     loadCustomers,
-    refreshStatusAndCustomers,
+    checkForNewData,
   };
 }

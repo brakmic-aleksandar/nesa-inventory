@@ -182,24 +182,30 @@ export default function StartScreen({
     hasNewDataAvailable,
     setHasNewDataAvailable,
     loadCustomers,
-    refreshStatusAndCustomers,
+    checkForNewData,
   } = useCustomers(refreshKey);
   const { importProgress, runImport, runImportFromBookmark, checkImportedFileChange } =
     useImportData();
 
+  const refreshOrderStatus = useCallback(() => {
+    db.getSavedOrdersCount().then(setSavedOrdersCount).catch(() => {});
+    db.getTodayCustomerNames().then(setSavedTodayNames).catch(() => {});
+    db.getTodaySentCustomerNames().then(setSentTodayNames).catch(() => {});
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      refreshStatusAndCustomers();
-      db.getSavedOrdersCount().then(setSavedOrdersCount).catch(() => {});
-      db.getTodayCustomerNames().then(setSavedTodayNames).catch(() => {});
-      db.getTodaySentCustomerNames().then(setSentTodayNames).catch(() => {});
+      loadCustomers();
+      refreshOrderStatus();
+      checkForNewData();
 
       const interval = setInterval(() => {
-        refreshStatusAndCustomers();
+        refreshOrderStatus();
+        checkForNewData();
       }, 30000);
 
       return () => clearInterval(interval);
-    }, [refreshStatusAndCustomers])
+    }, [loadCustomers, refreshOrderStatus, checkForNewData])
   );
 
   const searchTerm = customerSearch.toLowerCase().trim();

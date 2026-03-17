@@ -20,7 +20,7 @@ export default function SummaryRoute() {
       onDone={() => {
         clearAll();
         router.dismissAll();
-        router.replace('/');
+        router.replace({ pathname: '/', params: { refreshKey: String(Date.now()) } });
       }}
     />
   );
