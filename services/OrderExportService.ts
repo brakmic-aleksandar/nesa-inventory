@@ -21,6 +21,37 @@ type ColorColumn = {
 };
 
 export class OrderExportService {
+  private applyTableBorders(rows: ExcelJS.Row[], columnCount: number) {
+    if (rows.length === 0 || columnCount <= 0) {
+      return;
+    }
+
+    const lastRowIndex = rows.length - 1;
+
+    rows.forEach((row, rowIndex) => {
+      for (let col = 1; col <= columnCount; col += 1) {
+        row.getCell(col).border = {
+          top: {
+            style: rowIndex === 0 ? 'medium' : 'thin',
+            color: { argb: 'FF000000' },
+          },
+          left: {
+            style: col === 1 ? 'medium' : 'thin',
+            color: { argb: 'FF000000' },
+          },
+          bottom: {
+            style: rowIndex === lastRowIndex ? 'medium' : 'thin',
+            color: { argb: 'FF000000' },
+          },
+          right: {
+            style: col === columnCount ? 'medium' : 'thin',
+            color: { argb: 'FF000000' },
+          },
+        };
+      }
+    });
+  }
+
   private joinColorNames(colorNames: Iterable<string>): string {
     const uniqueNames: string[] = [];
     const seen = new Set<string>();
@@ -118,7 +149,7 @@ export class OrderExportService {
     worksheet: ExcelJS.Worksheet,
     colorGroup: ColorColumn[],
     groupIndex: number
-  ) {
+  ): ExcelJS.Row {
     const headerLabels = colorGroup.map((col) => `${col.color_number}`);
     const headerRow = worksheet.addRow(['', '', ...headerLabels]);
     if (groupIndex === 1) {
@@ -130,6 +161,8 @@ export class OrderExportService {
         };
       });
     }
+
+    return headerRow;
   }
 
   private getColorOrderKey(value: unknown): string {
@@ -239,11 +272,17 @@ export class OrderExportService {
       worksheet.addRow([stand.name]);
       worksheet.addRow([]);
 
+      const tableRows: ExcelJS.Row[] = [];
+      let tableColumnCount = 0;
+
       if (standMode === 'per_sheet') {
         colorGroups.forEach((colorGroup, groupIndex) => {
-          this.addColorHeaderRow(worksheet, colorGroup, groupIndex);
+          const headerRow = this.addColorHeaderRow(worksheet, colorGroup, groupIndex);
+          tableRows.push(headerRow);
+          tableColumnCount = Math.max(tableColumnCount, colorGroup.length + 2);
         });
-        worksheet.addRow([]);
+        const headerSpacerRow = worksheet.addRow([]);
+        tableRows.push(headerSpacerRow);
 
         sortedRowIndices.forEach((rowIndex) => {
           const articlesInRow = articlesByRow.get(rowIndex)!;
@@ -275,6 +314,8 @@ export class OrderExportService {
               });
 
               const row = worksheet.addRow(rowData);
+              tableRows.push(row);
+              tableColumnCount = Math.max(tableColumnCount, rowData.length);
               if (groupIndex === 1) {
                 row.eachCell({ includeEmpty: true }, (cell) => {
                   cell.fill = {
@@ -286,8 +327,8 @@ export class OrderExportService {
               }
             });
           });
-
-          worksheet.addRow([]);
+          const spacerRow = worksheet.addRow([]);
+          tableRows.push(spacerRow);
         });
       } else {
         sortedRowIndices.forEach((rowIndex) => {
@@ -331,13 +372,20 @@ export class OrderExportService {
               }
             });
 
-            worksheet.addRow(colorNameRow);
-            worksheet.addRow(quantityRow);
-          });
+            const colorNameExcelRow = worksheet.addRow(colorNameRow);
+            tableRows.push(colorNameExcelRow);
+            tableColumnCount = Math.max(tableColumnCount, colorNameRow.length);
 
-          worksheet.addRow([]);
+            const quantityExcelRow = worksheet.addRow(quantityRow);
+            tableRows.push(quantityExcelRow);
+            tableColumnCount = Math.max(tableColumnCount, quantityRow.length);
+          });
+          const spacerRow = worksheet.addRow([]);
+          tableRows.push(spacerRow);
         });
       }
+
+      this.applyTableBorders(tableRows, tableColumnCount);
 
       this.autoSizeWorksheetColumns(worksheet);
     }
@@ -358,14 +406,20 @@ export class OrderExportService {
       shelfWorksheet.addRow([t.export.dateLabel, new Date().toLocaleDateString()]);
       shelfWorksheet.addRow([t.export.timeLabel, new Date().toLocaleTimeString()]);
       shelfWorksheet.addRow([]);
-      shelfWorksheet.addRow([t.export.articleLabel, t.export.quantityLabel]);
+      const shelfTableRows: ExcelJS.Row[] = [];
+
+      const shelfHeaderRow = shelfWorksheet.addRow([t.export.articleLabel, t.export.quantityLabel]);
+      shelfTableRows.push(shelfHeaderRow);
       shelfItems.forEach((shelfItem) => {
         const orderKey = `${SHELF_SOURCE_ID}|${shelfItem.name}||null`;
         const orderedQty = orderMap.get(orderKey) || 0;
         if (orderedQty > 0) {
-          shelfWorksheet.addRow([shelfItem.name, orderedQty]);
+          const shelfDataRow = shelfWorksheet.addRow([shelfItem.name, orderedQty]);
+          shelfTableRows.push(shelfDataRow);
         }
       });
+
+      this.applyTableBorders(shelfTableRows, 2);
       this.autoSizeWorksheetColumns(shelfWorksheet);
     }
   }
