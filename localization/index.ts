@@ -8,6 +8,7 @@ export interface Translations {
     noCustomers: string;
     importCustomersHint: string;
     newDataAvailableReload: string;
+    dataFileMissing: string;
     searchCustomers: string;
     noCustomersFound: string;
     ungroupedCustomers: string;
@@ -202,6 +203,7 @@ export const translations: Record<string, Translations> = {
       noCustomers: 'No customers available',
       importCustomersHint: 'Import customers from Excel to get started',
       newDataAvailableReload: 'New data is available. Tap to reload data.',
+      dataFileMissing: 'Data file can\'t be found. Tap to import a new one.',
       searchCustomers: 'Search customers...',
       noCustomersFound: 'No customers found',
       ungroupedCustomers: 'Ungrouped',
@@ -389,6 +391,7 @@ export const translations: Record<string, Translations> = {
       noCustomers: 'Nema dostupnih kupaca',
       importCustomersHint: 'Uvezite kupce iz Excel-a da biste počeli',
       newDataAvailableReload: 'Novi podaci su dostupni. Dodirnite za ponovno učitavanje.',
+      dataFileMissing: 'Datoteka s podacima nije pronađena. Dodirnite za uvoz nove.',
       searchCustomers: 'Pretraži kupce...',
       noCustomersFound: 'Kupci nisu pronađeni',
       ungroupedCustomers: 'Bez grupe',
@@ -576,6 +579,7 @@ export const translations: Record<string, Translations> = {
       noCustomers: 'No hay clientes disponibles',
       importCustomersHint: 'Importe clientes desde Excel para comenzar',
       newDataAvailableReload: 'Hay datos nuevos disponibles. Toque para recargar datos.',
+      dataFileMissing: 'No se encuentra el archivo de datos. Toque para importar uno nuevo.',
       searchCustomers: 'Buscar clientes...',
       noCustomersFound: 'No se encontraron clientes',
       ungroupedCustomers: 'Sin grupo',

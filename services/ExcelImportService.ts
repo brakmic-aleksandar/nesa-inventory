@@ -82,21 +82,21 @@ class ImageAssigner {
   }
 }
 
-export async function checkImportedFile(): Promise<boolean> {
+export type ImportFileStatus = 'unchanged' | 'changed' | 'missing';
+
+export async function checkImportedFile(): Promise<ImportFileStatus> {
   try {
     const { bookmark, modDate, fileSize } = await Settings.loadImportedFileBookmark();
     if (!bookmark) {
-      return false;
+      return 'unchanged';
     }
     const resolved = await resolveBookmark(bookmark);
     if (!resolved) {
-      await Settings.clearImportedFileBookmark();
-      return true;
+      return 'missing';
     }
 
     if (!resolved.exists) {
-      console.warn('Previously imported file no longer exists:', resolved.path);
-      return true;
+      return 'missing';
     }
 
     const newModDate = resolved.modificationTime ? Number(resolved.modificationTime) : 0;
@@ -105,13 +105,13 @@ export async function checkImportedFile(): Promise<boolean> {
     const changedBySize = fileSize !== null && newFileSize !== null && newFileSize !== fileSize;
 
     if (changedByModDate || changedBySize) {
-      return true;
+      return 'changed';
     }
 
-    return false;
+    return 'unchanged';
   } catch (error) {
     console.error('Error checking imported file change:', error);
-    return false;
+    return 'unchanged';
   }
 }
 

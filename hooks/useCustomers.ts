@@ -3,11 +3,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { db } from '../database/DatabaseService';
 import { CustomerGroupWithCustomers } from '../database/schema';
 import { Settings } from '../models/Settings';
-import { checkImportedFile } from '../services/ExcelImportService';
+import { checkImportedFile, ImportFileStatus } from '../services/ExcelImportService';
 
 export function useCustomers(refreshKey?: number) {
   const [customerGroups, setCustomerGroups] = useState<CustomerGroupWithCustomers[]>([]);
-  const [hasNewDataAvailable, setHasNewDataAvailable] = useState(false);
+  const [importFileStatus, setImportFileStatus] = useState<ImportFileStatus>('unchanged');
 
   const loadCustomers = useCallback(async () => {
     const loadedCustomerGroups = await db.getCustomerGroupsWithCustomers();
@@ -16,10 +16,10 @@ export function useCustomers(refreshKey?: number) {
   }, []);
 
   const checkForNewData = useCallback(async () => {
-    const hasChanged = await checkImportedFile();
+    const status = await checkImportedFile();
     await Settings.loadImportedFileBookmark();
-    setHasNewDataAvailable(hasChanged);
-    return hasChanged;
+    setImportFileStatus(status);
+    return status;
   }, []);
 
   useEffect(() => {
@@ -27,10 +27,10 @@ export function useCustomers(refreshKey?: number) {
 
     const load = async () => {
       try {
-        const hasChanged = await checkImportedFile();
+        const status = await checkImportedFile();
         await Settings.loadImportedFileBookmark();
         if (isMounted) {
-          setHasNewDataAvailable(hasChanged);
+          setImportFileStatus(status);
         }
 
         const loadedCustomers = await db.getCustomerGroupsWithCustomers();
@@ -51,8 +51,8 @@ export function useCustomers(refreshKey?: number) {
 
   return {
     customerGroups,
-    hasNewDataAvailable,
-    setHasNewDataAvailable,
+    importFileStatus,
+    setImportFileStatus,
     loadCustomers,
     checkForNewData,
   };

@@ -179,8 +179,8 @@ export default function StartScreen({
   const [sentTodayNames, setSentTodayNames] = useState<Set<string>>(new Set());
   const {
     customerGroups,
-    hasNewDataAvailable,
-    setHasNewDataAvailable,
+    importFileStatus,
+    setImportFileStatus,
     loadCustomers,
     checkForNewData,
   } = useCustomers(refreshKey);
@@ -230,7 +230,7 @@ export default function StartScreen({
     try {
       await checkImportedFileChange();
 
-      const result = hasNewDataAvailable ? await runImportFromBookmark() : await runImport();
+      const result = importFileStatus === 'changed' ? await runImportFromBookmark() : await runImport();
 
       if (result.status === 'cancelled') {
         return;
@@ -239,7 +239,7 @@ export default function StartScreen({
       if (result.status === 'success') {
         await loadCustomers();
         setCustomerSearch('');
-        setHasNewDataAvailable(false);
+        setImportFileStatus('unchanged');
         Toast.success(result.message);
       } else {
         Toast.error(result.message);
@@ -310,7 +310,7 @@ export default function StartScreen({
         </TouchableOpacity>
         <TouchableOpacity style={styles.headerButton} onPress={onSettingsPress}>
           <Ionicons name="settings-outline" size={theme.iconSize.large} color={colors.primary} />
-          {hasNewDataAvailable && (
+          {importFileStatus !== 'unchanged' && (
             <View
               style={[
                 styles.newDataBadge,
@@ -327,10 +327,10 @@ export default function StartScreen({
       <View style={styles.content}>
         <BeaverLogo size={150} />
         <Text style={[styles.title, { color: colors.text }]}>{t.startScreen.selectCustomer}</Text>
-        {hasNewDataAvailable && (
+        {importFileStatus !== 'unchanged' && (
           <TouchableOpacity onPress={handleImportCustomers} activeOpacity={0.7}>
-            <Text style={[styles.reloadLinkText, { color: colors.primary }]}>
-              {t.startScreen.newDataAvailableReload}
+            <Text style={[styles.reloadLinkText, { color: importFileStatus === 'missing' ? colors.warning : colors.primary }]}>
+              {importFileStatus === 'missing' ? t.startScreen.dataFileMissing : t.startScreen.newDataAvailableReload}
             </Text>
           </TouchableOpacity>
         )}

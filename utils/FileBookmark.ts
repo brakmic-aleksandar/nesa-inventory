@@ -25,7 +25,7 @@ export async function resolveBookmark(bookmark: string): Promise<ResolvedBookmar
   try {
     return await FileBookmarkModule.resolveBookmark(bookmark);
   } catch (error) {
-    console.error('Failed to resolve bookmark:', error);
+    console.warn('Failed to resolve bookmark:', error);
     return null;
   }
 }
