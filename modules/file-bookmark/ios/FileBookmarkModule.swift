@@ -105,7 +105,7 @@ public class FileBookmarkModule: Module {
       return data.base64EncodedString()
     }
 
-    AsyncFunction("resolveBookmark") { (base64: String) -> String in
+    AsyncFunction("resolveBookmark") { (base64: String) -> [String: Any?] in
       guard let data = Data(base64Encoded: base64) else {
         throw NSError(domain: "Bookmark", code: 1, userInfo: [
           NSLocalizedDescriptionKey: "Invalid bookmark data",
@@ -124,7 +124,31 @@ public class FileBookmarkModule: Module {
         NSLog("[FileBookmark] Resolved stale bookmark; continuing with resolved path")
       }
 
-      return url.path
+      let accessed = url.startAccessingSecurityScopedResource()
+      defer {
+        if accessed {
+          url.stopAccessingSecurityScopedResource()
+        }
+      }
+
+      let fileManager = FileManager.default
+      let exists = fileManager.fileExists(atPath: url.path)
+      var modTime: Double? = nil
+      var fileSize: Int? = nil
+
+      if exists {
+        let attributes = try? fileManager.attributesOfItem(atPath: url.path)
+        modTime = (attributes?[.modificationDate] as? Date)?.timeIntervalSince1970
+        fileSize = attributes?[.size] as? Int
+      }
+
+      return [
+        "path": url.path,
+        "exists": exists,
+        "modificationTime": modTime,
+        "size": fileSize,
+        "isStale": isStale,
+      ]
     }
 
     AsyncFunction("pickExcelFileOpenInPlace") { (promise: Promise) in

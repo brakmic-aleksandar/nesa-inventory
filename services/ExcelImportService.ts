@@ -88,27 +88,19 @@ export async function checkImportedFile(): Promise<boolean> {
     if (!bookmark) {
       return false;
     }
-    const filePath = await resolveBookmark(bookmark);
-    if (!filePath) {
+    const resolved = await resolveBookmark(bookmark);
+    if (!resolved) {
       await Settings.clearImportedFileBookmark();
       return true;
     }
 
-    const fileUri = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
-    const fileInfo = new File(fileUri).info();
-    if (!fileInfo.exists) {
-      console.warn('Previously imported file no longer exists:', filePath);
+    if (!resolved.exists) {
+      console.warn('Previously imported file no longer exists:', resolved.path);
       return true;
     }
 
-    const newModDate =
-      fileInfo.exists && 'modificationTime' in fileInfo && fileInfo.modificationTime
-        ? Number(fileInfo.modificationTime)
-        : 0;
-    const newFileSize =
-      fileInfo.exists && 'size' in fileInfo && typeof fileInfo.size === 'number'
-        ? Number(fileInfo.size)
-        : null;
+    const newModDate = resolved.modificationTime ? Number(resolved.modificationTime) : 0;
+    const newFileSize = resolved.size != null ? Number(resolved.size) : null;
     const changedByModDate = modDate !== null && newModDate > 0 && newModDate !== modDate;
     const changedBySize = fileSize !== null && newFileSize !== null && newFileSize !== fileSize;
 
@@ -130,24 +122,18 @@ export async function getImportedFileFromBookmark(): Promise<SelectedImportFile 
       return null;
     }
 
-    const filePath = await resolveBookmark(bookmark);
-    if (!filePath) {
+    const resolved = await resolveBookmark(bookmark);
+    if (!resolved || !resolved.exists || !resolved.path) {
       return null;
     }
 
-    const fileUri = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
-    const fileInfo = new File(fileUri).info();
-    if (!fileInfo.exists) {
-      return null;
-    }
-
-    const fileName = filePath.split('/').pop() || 'import.xlsx';
+    const fileName = resolved.path.split('/').pop() || 'import.xlsx';
 
     return {
-      uri: filePath,
+      uri: resolved.path,
       name: fileName,
       bookmark,
-      sourcePath: filePath,
+      sourcePath: resolved.path,
     };
   } catch (error) {
     console.error('Error resolving imported file from bookmark:', error);
@@ -997,15 +983,9 @@ export class ExcelImportService {
           if (!bookmark) {
             throw new Error('Failed to create bookmark for imported file');
           }
-          const fileInfo = new File(this.toFileUri(bookmarkPath)).info();
-          const modDate =
-            fileInfo.exists && 'modificationTime' in fileInfo && fileInfo.modificationTime
-              ? Number(fileInfo.modificationTime)
-              : 0;
-          const fileSize =
-            fileInfo.exists && 'size' in fileInfo && typeof fileInfo.size === 'number'
-              ? Number(fileInfo.size)
-              : null;
+          const resolved = await resolveBookmark(bookmark);
+          const modDate = resolved?.modificationTime ? Number(resolved.modificationTime) : 0;
+          const fileSize = resolved?.size != null ? Number(resolved.size) : null;
           await Settings.saveImportedFileBookmark(bookmark, modDate, fileSize);
         } catch (bookmarkError) {
           console.error('Failed to bookmark imported file:', bookmarkError);

@@ -1,4 +1,5 @@
 import FileBookmarkModule from '../modules/file-bookmark';
+import type { ResolvedBookmark } from '../modules/file-bookmark/src/FileBookmarkModule';
 
 export type OpenInPlacePickResult = {
   canceled: boolean;
@@ -7,6 +8,8 @@ export type OpenInPlacePickResult = {
   name?: string;
   bookmark?: string;
 };
+
+export type { ResolvedBookmark };
 
 export async function createBookmark(filePath: string): Promise<string | null> {
   try {
@@ -18,10 +21,9 @@ export async function createBookmark(filePath: string): Promise<string | null> {
   }
 }
 
-export async function resolveBookmark(bookmark: string): Promise<string | null> {
+export async function resolveBookmark(bookmark: string): Promise<ResolvedBookmark | null> {
   try {
-    const filePath = await FileBookmarkModule.resolveBookmark(bookmark);
-    return filePath;
+    return await FileBookmarkModule.resolveBookmark(bookmark);
   } catch (error) {
     console.error('Failed to resolve bookmark:', error);
     return null;
