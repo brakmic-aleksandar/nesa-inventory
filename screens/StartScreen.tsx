@@ -370,6 +370,7 @@ export default function StartScreen({
       />
 
       <ImportProgressModal visible={importProgress.visible} message={importProgress.message} />
+
     </SafeAreaView>
   );
 }

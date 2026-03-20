@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 
 import { theme } from '../constants/theme';
 import { ImportProgressModal } from './ImportProgressModal';
@@ -175,6 +176,10 @@ function SettingsForm({
             </Text>
           </Pressable>
         </View>
+
+        <Text style={[styles.versionText, { color: colors.textTertiary }]}>
+          v{Constants.expoConfig?.version ?? '?'}
+        </Text>
       </ScrollView>
 
       <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
@@ -506,5 +511,11 @@ const styles = StyleSheet.create({
   languageButtonText: {
     ...theme.typography.bodySmall,
     fontWeight: '600',
+  },
+  versionText: {
+    ...theme.typography.caption,
+    fontSize: 11,
+    textAlign: 'center',
+    paddingVertical: theme.spacing.md,
   },
 });
