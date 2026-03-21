@@ -244,7 +244,7 @@ export default function ShelfScreen() {
 
     const timer = setTimeout(() => {
       listRef.current?.scrollToIndex({
-        index: focusedIndex,
+        index: focusedRow,
         animated: true,
         viewPosition: 0.2,
       });
@@ -345,7 +345,7 @@ export default function ShelfScreen() {
 
       setTimeout(() => {
         listRef.current?.scrollToIndex({
-          index,
+          index: focusedRow,
           animated: true,
           viewPosition: 0.2,
         });
