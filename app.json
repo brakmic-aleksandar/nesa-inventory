@@ -3,6 +3,9 @@
     "name": "Maza",
     "slug": "maza",
     "scheme": "maza",
+    "autolinking": {
+      "nativeModulesDir": "./src/modules"
+    },
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/beaver-icon.png",

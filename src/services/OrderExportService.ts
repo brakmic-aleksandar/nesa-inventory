@@ -15,10 +15,60 @@ export interface OrderItem {
 
 type ColorHeaderMode = 'per_sheet' | 'per_row';
 
-type ColorColumn = {
+export type ColorColumn = {
   color_order: number;
   color_number: string;
 };
+
+// ---------------------------------------------------------------------------
+// Pure utility functions -- exported for testing
+// ---------------------------------------------------------------------------
+
+export function joinColorNames(colorNames: Iterable<string>): string {
+  const uniqueNames: string[] = [];
+  const seen = new Set<string>();
+  for (const rawName of colorNames) {
+    const name = rawName.trim();
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    uniqueNames.push(name);
+  }
+  return uniqueNames.join('/');
+}
+
+export function getColorOrderKey(value: unknown): string {
+  if (value === undefined) return '';
+  if (value === null) return 'null';
+  return String(value);
+}
+
+export function splitColorGroups(colorColumns: ColorColumn[], groupSize = 10): ColorColumn[][] {
+  const groups: ColorColumn[][] = [];
+  for (let i = 0; i < colorColumns.length; i += groupSize) {
+    groups.push(colorColumns.slice(i, i + groupSize));
+  }
+  if (groups.length === 0) {
+    groups.push([]);
+  }
+  return groups;
+}
+
+export function buildColorColumnsWithGaps(colorMap: Map<number, string>): ColorColumn[] {
+  if (colorMap.size === 0) return [];
+  const orders = Array.from(colorMap.keys()).sort((a, b) => a - b);
+  const minOrder = orders[0];
+  const maxOrder = orders[orders.length - 1];
+  const startOrder = minOrder < 1 ? minOrder : 1;
+  const result: ColorColumn[] = [];
+  for (let order = startOrder; order <= maxOrder; order += 1) {
+    result.push({ color_order: order, color_number: colorMap.get(order) ?? '' });
+  }
+  return result;
+}
+
+export function truncateSheetName(name: string): string {
+  return name.length > 31 ? name.substring(0, 31) : name;
+}
 
 export class OrderExportService {
   private applyTableBorders(rows: ExcelJS.Row[], columnCount: number) {
@@ -53,17 +103,7 @@ export class OrderExportService {
   }
 
   private joinColorNames(colorNames: Iterable<string>): string {
-    const uniqueNames: string[] = [];
-    const seen = new Set<string>();
-
-    for (const rawName of colorNames) {
-      const name = rawName.trim();
-      if (!name || seen.has(name)) continue;
-      seen.add(name);
-      uniqueNames.push(name);
-    }
-
-    return uniqueNames.join('/');
+    return joinColorNames(colorNames);
   }
 
   private sumPositionQuantity(
@@ -116,33 +156,11 @@ export class OrderExportService {
   }
 
   private splitColorGroups(colorColumns: ColorColumn[], groupSize = 10): ColorColumn[][] {
-    const groups: ColorColumn[][] = [];
-    for (let i = 0; i < colorColumns.length; i += groupSize) {
-      groups.push(colorColumns.slice(i, i + groupSize));
-    }
-    if (groups.length === 0) {
-      groups.push([]);
-    }
-    return groups;
+    return splitColorGroups(colorColumns, groupSize);
   }
 
   private buildColorColumnsWithGaps(colorMap: Map<number, string>): ColorColumn[] {
-    if (colorMap.size === 0) return [];
-
-    const orders = Array.from(colorMap.keys()).sort((a, b) => a - b);
-    const minOrder = orders[0];
-    const maxOrder = orders[orders.length - 1];
-    const startOrder = minOrder < 1 ? minOrder : 1;
-
-    const result: ColorColumn[] = [];
-    for (let order = startOrder; order <= maxOrder; order += 1) {
-      result.push({
-        color_order: order,
-        color_number: colorMap.get(order) ?? '',
-      });
-    }
-
-    return result;
+    return buildColorColumnsWithGaps(colorMap);
   }
 
   private addColorHeaderRow(
@@ -166,13 +184,11 @@ export class OrderExportService {
   }
 
   private getColorOrderKey(value: unknown): string {
-    if (value === undefined) return '';
-    if (value === null) return 'null';
-    return String(value);
+    return getColorOrderKey(value);
   }
 
   private truncateSheetName(name: string): string {
-    return name.length > 31 ? name.substring(0, 31) : name;
+    return truncateSheetName(name);
   }
 
   /**

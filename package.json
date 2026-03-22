@@ -7,6 +7,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
@@ -55,10 +57,12 @@
   },
   "devDependencies": {
     "@react-native-community/cli": "latest",
+    "@types/jest": "^30.0.0",
     "@react-native/metro-config": "^0.81.0",
     "@types/react": "~19.2.10",
     "@typescript-eslint/eslint-plugin": "^8.55.0",
     "@typescript-eslint/parser": "^8.55.0",
+    "babel-jest": "^30.2.0",
     "babel-plugin-transform-remove-console": "^6.9.4",
     "babel-preset-expo": "~55.0.0",
     "eslint": "^9.39.2",
@@ -66,8 +70,14 @@
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "jest": "^30.2.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "nativeModulesDir": "./src/modules"
+    }
+  }
 }

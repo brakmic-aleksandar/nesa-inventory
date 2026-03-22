@@ -1,0 +1,7 @@
+{
+  "platforms": ["apple"],
+  "apple": {
+    "modules": ["ExcelReaderModule"],
+    "podspecPath": "ios/ExcelReaderModule.podspec"
+  }
+}

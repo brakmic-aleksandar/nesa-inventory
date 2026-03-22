@@ -227,7 +227,7 @@ export interface SelectedImportFile {
   sourcePath?: string;
 }
 
-type SupportedLanguage = 'en' | 'sr' | 'es';
+export type SupportedLanguage = 'en' | 'sr' | 'es';
 
 interface ResolvedImportSheets {
   standItemsSheet: string;
@@ -299,7 +299,7 @@ type StandColumnKey = keyof typeof STAND_COL_INDEX;
 type ShelfColumnKey = keyof typeof SHELF_COL_INDEX;
 type CustomerColumnKey = keyof typeof CUSTOMER_COL_INDEX;
 
-type HeaderAliasMap<T extends string> = Record<T, string[]>;
+export type HeaderAliasMap<T extends string> = Record<T, string[]>;
 
 const STAND_HEADER_ALIASES: HeaderAliasMap<StandColumnKey> = {
   standName: [
@@ -436,6 +436,77 @@ const TEMPLATE_HEADERS: Record<
   },
 };
 
+// ---------------------------------------------------------------------------
+// Pure utility functions -- exported for testing
+// ---------------------------------------------------------------------------
+
+export function normalizeHeaderValue(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+export function parseStandPerRowFlag(value: unknown): boolean | null {
+  const normalized = normalizeHeaderValue(value);
+  if (normalized === 'yes' || normalized === 'da' || normalized === 'si') return true;
+  if (normalized === 'no' || normalized === 'ne') return false;
+  return null;
+}
+
+export function getSupportedLanguage(language?: string | null): SupportedLanguage {
+  if (language === 'sr' || language === 'es' || language === 'en') return language;
+  return 'en';
+}
+
+export function resolveHeaderIndexes<T extends string>(
+  headerRow: any[],
+  aliases: HeaderAliasMap<T>,
+  fallback: Record<T, number>
+): { indexes: Record<T, number>; missing: T[] } {
+  const normalizedHeaderIndex = new Map<string, number>();
+
+  headerRow.forEach((cell, index) => {
+    const normalized = normalizeHeaderValue(cell);
+    if (!normalized) return;
+    if (!normalizedHeaderIndex.has(normalized)) {
+      normalizedHeaderIndex.set(normalized, index);
+    }
+  });
+
+  const indexes = {} as Record<T, number>;
+  const missing: T[] = [];
+
+  (Object.keys(aliases) as T[]).forEach((key) => {
+    const keyAliases = aliases[key];
+    let resolvedIndex: number | undefined;
+
+    for (const alias of keyAliases) {
+      const normalizedAlias = normalizeHeaderValue(alias);
+      const foundIndex = normalizedHeaderIndex.get(normalizedAlias);
+      if (foundIndex !== undefined) {
+        resolvedIndex = foundIndex;
+        break;
+      }
+    }
+
+    if (resolvedIndex === undefined) {
+      resolvedIndex = fallback[key];
+    }
+
+    indexes[key] = resolvedIndex;
+
+    if (resolvedIndex === undefined || resolvedIndex >= headerRow.length) {
+      missing.push(key);
+    }
+  });
+
+  return { indexes, missing };
+}
+
 export class ExcelImportService {
   private onProgress?: (message: string) => void;
   private progressMessages: ImportProgressMessages = DEFAULT_IMPORT_PROGRESS_MESSAGES;
@@ -445,10 +516,7 @@ export class ExcelImportService {
   private readonly CUSTOMERS_SHEET = 'Customers';
 
   private getSupportedLanguage(language?: string | null): SupportedLanguage {
-    if (language === 'sr' || language === 'es' || language === 'en') {
-      return language;
-    }
-    return 'en';
+    return getSupportedLanguage(language);
   }
 
   private async getTemplateHeaderSet(language?: string): Promise<{
@@ -465,26 +533,11 @@ export class ExcelImportService {
   }
 
   private normalizeHeaderValue(value: unknown): string {
-    return String(value ?? '')
-      .trim()
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_+|_+$/g, '');
+    return normalizeHeaderValue(value);
   }
 
   private parseStandPerRowFlag(value: unknown): boolean | null {
-    const normalized = this.normalizeHeaderValue(value);
-    if (normalized === 'yes' || normalized === 'da' || normalized === 'si') {
-      return true;
-    }
-
-    if (normalized === 'no' || normalized === 'ne') {
-      return false;
-    }
-
-    return null;
+    return parseStandPerRowFlag(value);
   }
 
   private resolveHeaderIndexes<T extends string>(
@@ -492,44 +545,7 @@ export class ExcelImportService {
     aliases: HeaderAliasMap<T>,
     fallback: Record<T, number>
   ): { indexes: Record<T, number>; missing: T[] } {
-    const normalizedHeaderIndex = new Map<string, number>();
-
-    headerRow.forEach((cell, index) => {
-      const normalized = this.normalizeHeaderValue(cell);
-      if (!normalized) return;
-      if (!normalizedHeaderIndex.has(normalized)) {
-        normalizedHeaderIndex.set(normalized, index);
-      }
-    });
-
-    const indexes = {} as Record<T, number>;
-    const missing: T[] = [];
-
-    (Object.keys(aliases) as T[]).forEach((key) => {
-      const keyAliases = aliases[key];
-      let resolvedIndex: number | undefined;
-
-      for (const alias of keyAliases) {
-        const normalizedAlias = this.normalizeHeaderValue(alias);
-        const foundIndex = normalizedHeaderIndex.get(normalizedAlias);
-        if (foundIndex !== undefined) {
-          resolvedIndex = foundIndex;
-          break;
-        }
-      }
-
-      if (resolvedIndex === undefined) {
-        resolvedIndex = fallback[key];
-      }
-
-      indexes[key] = resolvedIndex;
-
-      if (resolvedIndex === undefined || resolvedIndex >= headerRow.length) {
-        missing.push(key);
-      }
-    });
-
-    return { indexes, missing };
+    return resolveHeaderIndexes<T>(headerRow, aliases, fallback);
   }
 
   private toLocalPath(uriOrPath: string): string {
