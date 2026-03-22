@@ -90,8 +90,13 @@ function main() {
   const bundleVersion = args.version || expo?.version || '1.0.0';
   const title = args.title || expo?.name || 'App';
 
-  const defaultIpaUrl = `https://github.com/brakmic-aleksandar/nesa-inventory/releases/download/${bundleVersion}/app.ipa`;
-  const ipaUrl = args['ipa-url'] || process.env.IPA_URL || defaultIpaUrl;
+  const ipaUrl = args['ipa-url'] || process.env.IPA_URL;
+  if (!ipaUrl) {
+    console.error(
+      'IPA URL is required. Provide --ipa-url https://... or set IPA_URL environment variable.'
+    );
+    process.exit(1);
+  }
   if (!ensureHttps(ipaUrl)) {
     console.error('IPA URL must be a valid HTTPS URL for iOS ad hoc install.');
     process.exit(1);

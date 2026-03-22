@@ -66,6 +66,21 @@ function resolveDefaultBaseUrl(projectRoot) {
   return '';
 }
 
+function readAppConfig(projectRoot) {
+  const appJsonPath = path.join(projectRoot, 'app.json');
+  const raw = fs.readFileSync(appJsonPath, 'utf8');
+  const parsed = JSON.parse(raw);
+  return parsed.expo || {};
+}
+
+function constructGitHubReleasesUrl(ipaName, owner, repo, version) {
+  if (!owner || !repo || !version) {
+    return null;
+  }
+
+  return `https://github.com/${owner}/${repo}/releases/download/${version}/${ipaName}`;
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const projectRoot = process.cwd();
@@ -97,17 +112,27 @@ function main() {
 
   let ipaUrl = args['ipa-url'] || process.env.IPA_URL || '';
   if (!ipaUrl) {
-    const baseUrl = (
-      args['base-url'] ||
-      process.env.BASE_URL ||
-      resolveDefaultBaseUrl(projectRoot)
-    ).trim();
-    if (!baseUrl) {
-      throw new Error(
-        'Missing IPA URL. Provide --ipa-url https://... or --base-url https://... (used as <base-url>/<ipa-name>). You can also set docs/config.json github.owner/repo for automatic defaults.'
-      );
+    const githubOwner = args['github-owner'] || 'brakmic-aleksandar';
+    const githubRepo = args['github-repo'] || 'nesa-inventory';
+    const expo = readAppConfig(projectRoot);
+    const version = expo?.version;
+
+    const githubUrl = constructGitHubReleasesUrl(ipaName, githubOwner, githubRepo, version);
+    if (githubUrl) {
+      ipaUrl = githubUrl;
+    } else {
+      const baseUrl = (
+        args['base-url'] ||
+        process.env.BASE_URL ||
+        resolveDefaultBaseUrl(projectRoot)
+      ).trim();
+      if (!baseUrl) {
+        throw new Error(
+          'Missing IPA URL. Provide --ipa-url https://... or --base-url https://... (used as <base-url>/<ipa-name>). Note: Default GitHub repo is brakmic-aleksandar/nesa-inventory; override with --github-owner and --github-repo.'
+        );
+      }
+      ipaUrl = `${baseUrl.replace(/\/+$/, '')}/${ipaName}`;
     }
-    ipaUrl = `${baseUrl.replace(/\/+$/, '')}/${ipaName}`;
   }
 
   if (!ensureHttps(ipaUrl)) {
