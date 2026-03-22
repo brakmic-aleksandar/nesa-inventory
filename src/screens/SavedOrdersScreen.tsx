@@ -174,10 +174,7 @@ export default function SavedOrdersScreen({
     });
   };
 
-  const todayOrders = useMemo(
-    () => orders.filter((o) => isToday(o.created_at)),
-    [orders]
-  );
+  const todayOrders = useMemo(() => orders.filter((o) => isToday(o.created_at)), [orders]);
 
   const handleSelectAllToday = () => {
     setSelectMode(true);
@@ -217,10 +214,7 @@ export default function SavedOrdersScreen({
     setSelectedIds(new Set());
   };
 
-  const sections = useMemo(
-    () => groupOrdersByDay(orders, t.savedOrders),
-    [orders, t.savedOrders]
-  );
+  const sections = useMemo(() => groupOrdersByDay(orders, t.savedOrders), [orders, t.savedOrders]);
 
   const renderOrderCard = ({ item: order }: { item: SavedOrder }) => {
     const count = itemCounts[order.id] ?? 0;
@@ -238,7 +232,7 @@ export default function SavedOrdersScreen({
           },
         ]}
         activeOpacity={0.7}
-        onPress={() => selectMode ? toggleSelect(order.id) : onEditOrder(order.id)}
+        onPress={() => (selectMode ? toggleSelect(order.id) : onEditOrder(order.id))}
       >
         {selectMode ? (
           <View style={styles.orderCardMain}>
@@ -255,7 +249,11 @@ export default function SavedOrdersScreen({
                     {order.customer_name}
                   </Text>
                   {isSent && (
-                    <Ionicons name="checkmark-circle" size={theme.iconSize.small} color={colors.success} />
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={theme.iconSize.small}
+                      color={colors.success}
+                    />
                   )}
                   <View style={[styles.itemCountBadge, { backgroundColor: colors.primary }]}>
                     <Text style={styles.itemCountText}>
@@ -278,7 +276,11 @@ export default function SavedOrdersScreen({
                     {order.customer_name}
                   </Text>
                   {isSent && (
-                    <Ionicons name="checkmark-circle" size={theme.iconSize.small} color={colors.success} />
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={theme.iconSize.small}
+                      color={colors.success}
+                    />
                   )}
                   <View style={[styles.itemCountBadge, { backgroundColor: colors.primary }]}>
                     <Text style={styles.itemCountText}>
@@ -296,10 +298,16 @@ export default function SavedOrdersScreen({
                 style={[styles.actionButton, { backgroundColor: colors.surfaceSecondary }]}
                 onPress={() => onSendOrder(order.id)}
               >
-                <Ionicons name="paper-plane-outline" size={theme.iconSize.small} color={colors.success} />
+                <Ionicons
+                  name="paper-plane-outline"
+                  size={theme.iconSize.small}
+                  color={colors.success}
+                />
               </TouchableOpacity>
               <TouchableOpacity
-                ref={(ref) => { shareButtonRefs.current[order.id] = ref; }}
+                ref={(ref) => {
+                  shareButtonRefs.current[order.id] = ref;
+                }}
                 style={[styles.actionButton, { backgroundColor: colors.surfaceSecondary }]}
                 onPress={() => {
                   const ref = shareButtonRefs.current[order.id];
@@ -327,7 +335,11 @@ export default function SavedOrdersScreen({
     );
   };
 
-  const renderSectionHeader = ({ section }: { section: { title: string; expiryLabel: string } }) => (
+  const renderSectionHeader = ({
+    section,
+  }: {
+    section: { title: string; expiryLabel: string };
+  }) => (
     <View style={[styles.sectionHeader, { backgroundColor: colors.background }]}>
       <Text style={[styles.sectionHeaderText, { color: colors.textSecondary }]}>
         {section.title}

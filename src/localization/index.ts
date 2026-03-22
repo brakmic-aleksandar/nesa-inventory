@@ -203,7 +203,7 @@ export const translations: Record<string, Translations> = {
       noCustomers: 'No customers available',
       importCustomersHint: 'Import customers from Excel to get started',
       newDataAvailableReload: 'New data is available. Tap to reload data.',
-      dataFileMissing: 'Data file can\'t be found. Tap to import a new one.',
+      dataFileMissing: "Data file can't be found. Tap to import a new one.",
       searchCustomers: 'Search customers...',
       noCustomersFound: 'No customers found',
       ungroupedCustomers: 'Ungrouped',

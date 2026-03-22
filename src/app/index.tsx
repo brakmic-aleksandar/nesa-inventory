@@ -6,16 +6,9 @@ import { useUpdateCheck } from '../hooks/useUpdateCheck';
 import { SavedOrderItem } from '../database/schema';
 import StartScreen from '../screens/StartScreen';
 
-function groupItemsBySource(items: SavedOrderItem[]): Record<string, Array<{
-  id: number;
-  name: string;
-  quantity: number;
-  image: string;
-  colorNumber?: string | null;
-  itemCode?: string | null;
-  colorOrder?: number | null;
-}>> {
-  const result: Record<string, Array<{
+function groupItemsBySource(items: SavedOrderItem[]): Record<
+  string,
+  Array<{
     id: number;
     name: string;
     quantity: number;
@@ -23,7 +16,20 @@ function groupItemsBySource(items: SavedOrderItem[]): Record<string, Array<{
     colorNumber?: string | null;
     itemCode?: string | null;
     colorOrder?: number | null;
-  }>> = {};
+  }>
+> {
+  const result: Record<
+    string,
+    Array<{
+      id: number;
+      name: string;
+      quantity: number;
+      image: string;
+      colorNumber?: string | null;
+      itemCode?: string | null;
+      colorOrder?: number | null;
+    }>
+  > = {};
 
   items.forEach((item) => {
     if (!result[item.source]) {

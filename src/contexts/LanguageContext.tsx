@@ -34,16 +34,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const t = translations[language] || translations.en;
 
-  const value = useMemo(
-    () => ({ language, setLanguage, t }),
-    [language, setLanguage, t]
-  );
+  const value = useMemo(() => ({ language, setLanguage, t }), [language, setLanguage, t]);
 
-  return (
-    <LanguageContext.Provider value={value}>
-      {children}
-    </LanguageContext.Provider>
-  );
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 };
 
 export const useLanguage = () => {

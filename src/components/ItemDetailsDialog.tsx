@@ -11,7 +11,13 @@ interface DetailField {
   value: string | number;
 }
 
-function DetailImage({ image, colors }: { image?: string; colors: ReturnType<typeof useTheme>['colors'] }) {
+function DetailImage({
+  image,
+  colors,
+}: {
+  image?: string;
+  colors: ReturnType<typeof useTheme>['colors'];
+}) {
   const hasImage = Boolean(image && image !== 'placeholder');
 
   return hasImage ? (

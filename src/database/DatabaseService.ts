@@ -732,7 +732,9 @@ class DatabaseService {
 
   async deleteExpiredOrders(): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
-    await this.db.runAsync("DELETE FROM saved_orders WHERE datetime(expires_at) < datetime('now', 'localtime')");
+    await this.db.runAsync(
+      "DELETE FROM saved_orders WHERE datetime(expires_at) < datetime('now', 'localtime')"
+    );
   }
 
   async updateSavedOrder(

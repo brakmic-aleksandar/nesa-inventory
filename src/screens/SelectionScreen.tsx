@@ -156,7 +156,9 @@ export default function SelectionScreen({
           onPress={handleSendOrder}
         >
           <Ionicons name="send" size={theme.iconSize.medium} color={colors.textOnColor} />
-          <Text style={[styles.sendOrderButtonText, { color: colors.textOnColor }]}>{t.selectionScreen.sendOrder}</Text>
+          <Text style={[styles.sendOrderButtonText, { color: colors.textOnColor }]}>
+            {t.selectionScreen.sendOrder}
+          </Text>
         </TouchableOpacity>
       </View>
 

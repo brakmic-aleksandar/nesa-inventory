@@ -17,16 +17,9 @@ import { Settings } from '../models/Settings';
 import { orderExport, OrderItem } from '../services/OrderExportService';
 import SavedOrdersScreen from '../screens/SavedOrdersScreen';
 
-function groupItemsBySource(items: SavedOrderItem[]): Record<string, Array<{
-  id: number;
-  name: string;
-  quantity: number;
-  image: string;
-  colorNumber?: string | null;
-  itemCode?: string | null;
-  colorOrder?: number | null;
-}>> {
-  const result: Record<string, Array<{
+function groupItemsBySource(items: SavedOrderItem[]): Record<
+  string,
+  Array<{
     id: number;
     name: string;
     quantity: number;
@@ -34,7 +27,20 @@ function groupItemsBySource(items: SavedOrderItem[]): Record<string, Array<{
     colorNumber?: string | null;
     itemCode?: string | null;
     colorOrder?: number | null;
-  }>> = {};
+  }>
+> {
+  const result: Record<
+    string,
+    Array<{
+      id: number;
+      name: string;
+      quantity: number;
+      image: string;
+      colorNumber?: string | null;
+      itemCode?: string | null;
+      colorOrder?: number | null;
+    }>
+  > = {};
 
   items.forEach((item) => {
     if (!result[item.source]) {
@@ -175,9 +181,9 @@ export default function SavedOrdersRoute() {
         Toast.info(t.orderSummaryScreen.emailCancelled);
       } else {
         for (const orderId of orderIds) {
-          await db.markOrderAsSent(orderId).catch((err) =>
-            console.error('Failed to mark order as sent:', err)
-          );
+          await db
+            .markOrderAsSent(orderId)
+            .catch((err) => console.error('Failed to mark order as sent:', err));
         }
         Toast.success(t.orderSummaryScreen.emailReady);
       }

@@ -5,7 +5,6 @@ import ShelfScreen from '../../screens/ShelfScreen';
 import { SHELF_SOURCE_ID } from '../../constants';
 
 export default function StandNameRoute() {
-  const router = useRouter();
   const params = useLocalSearchParams<{ stand_name?: string }>();
   const standName = typeof params.stand_name === 'string' ? params.stand_name : SHELF_SOURCE_ID;
 

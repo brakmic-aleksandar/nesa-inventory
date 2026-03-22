@@ -76,7 +76,9 @@ export function SkeletonStandItem() {
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.standItem, { backgroundColor: colors.surface, ...theme.elevation.medium }]}>
+    <View
+      style={[styles.standItem, { backgroundColor: colors.surface, ...theme.elevation.medium }]}
+    >
       <SkeletonLoader width={180} height={150} borderRadius={12} style={{ marginBottom: 10 }} />
       <SkeletonLoader width={140} height={16} style={{ marginBottom: 8, marginLeft: 20 }} />
       <SkeletonLoader width={180} height={50} borderRadius={12} />

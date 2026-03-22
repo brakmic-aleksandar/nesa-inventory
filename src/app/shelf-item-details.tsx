@@ -27,11 +27,6 @@ export default function ShelfItemDetailsRoute() {
   }
 
   return (
-    <ItemDetailsDialog
-      name={name}
-      image={image}
-      details={details}
-      onClose={() => router.back()}
-    />
+    <ItemDetailsDialog name={name} image={image} details={details} onClose={() => router.back()} />
   );
 }

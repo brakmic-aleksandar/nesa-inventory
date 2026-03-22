@@ -36,7 +36,11 @@ interface OrderContextType {
   }[];
   clearAll: () => void;
   loadOrderId: number | null;
-  loadFromSavedOrder: (orderId: number, customerName: string, itemsBySource: Record<string, OrderItem[]>) => void;
+  loadFromSavedOrder: (
+    orderId: number,
+    customerName: string,
+    itemsBySource: Record<string, OrderItem[]>
+  ) => void;
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
@@ -87,7 +91,6 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return allItems;
   }, []);
 
-
   const loadFromSavedOrder = useCallback(
     (orderId: number, customerName: string, savedItemsBySource: Record<string, OrderItem[]>) => {
       skipAutoSaveRef.current = true;
@@ -114,7 +117,14 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const currentCustomer = customerRef.current;
     if (!currentCustomer.trim()) return;
 
-    const allItems: { name: string; quantity: number; source: string; colorNumber?: string | null; itemCode?: string | null; colorOrder?: number | null }[] = [];
+    const allItems: {
+      name: string;
+      quantity: number;
+      source: string;
+      colorNumber?: string | null;
+      itemCode?: string | null;
+      colorOrder?: number | null;
+    }[] = [];
     Object.entries(itemsBySource).forEach(([source, items]) => {
       items.forEach((item) => {
         if (item.quantity > 0) {
@@ -153,8 +163,26 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   const value = useMemo(
-    () => ({ getItems, setItems, customer, setCustomer, getAllItems, clearAll, loadOrderId, loadFromSavedOrder }),
-    [getItems, setItems, customer, setCustomer, getAllItems, clearAll, loadOrderId, loadFromSavedOrder]
+    () => ({
+      getItems,
+      setItems,
+      customer,
+      setCustomer,
+      getAllItems,
+      clearAll,
+      loadOrderId,
+      loadFromSavedOrder,
+    }),
+    [
+      getItems,
+      setItems,
+      customer,
+      setCustomer,
+      getAllItems,
+      clearAll,
+      loadOrderId,
+      loadFromSavedOrder,
+    ]
   );
 
   return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;

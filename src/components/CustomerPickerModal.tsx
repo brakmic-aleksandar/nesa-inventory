@@ -96,14 +96,12 @@ export function CustomerPickerModal({
               {/* Header */}
               <View style={styles.dialogHeader}>
                 <Text style={[styles.dialogTitle, { color: colors.text }]}>
-                  {showCustomerList ? t.selectionScreen.editCustomerName : t.startScreen.enterCustomerName}
+                  {showCustomerList
+                    ? t.selectionScreen.editCustomerName
+                    : t.startScreen.enterCustomerName}
                 </Text>
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                  <Ionicons
-                    name="close"
-                    size={theme.iconSize.large}
-                    color={colors.textSecondary}
-                  />
+                  <Ionicons name="close" size={theme.iconSize.large} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -177,7 +175,10 @@ export function CustomerPickerModal({
                         placeholderTextColor={colors.textTertiary}
                       />
                       {search.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearch('')} style={styles.clearSearchButton}>
+                        <TouchableOpacity
+                          onPress={() => setSearch('')}
+                          style={styles.clearSearchButton}
+                        >
                           <Ionicons
                             name="close-circle"
                             size={theme.iconSize.small}
@@ -210,7 +211,10 @@ export function CustomerPickerModal({
                           {group.customers.map((customer) => (
                             <TouchableOpacity
                               key={customer.id}
-                              style={[styles.customerRow, { borderBottomColor: colors.borderLight }]}
+                              style={[
+                                styles.customerRow,
+                                { borderBottomColor: colors.borderLight },
+                              ]}
                               activeOpacity={0.7}
                               onPress={() => handleSelectCustomer(customer.name)}
                             >

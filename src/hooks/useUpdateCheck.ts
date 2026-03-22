@@ -33,9 +33,7 @@ function isNewerVersion(current: string, remote: string): boolean {
 }
 
 function findManifestUrl(assets: ReleaseAsset[]): string {
-  const byName = assets.find((a) =>
-    a.name.toLowerCase().includes(MANIFEST_ASSET_NAME)
-  );
+  const byName = assets.find((a) => a.name.toLowerCase().includes(MANIFEST_ASSET_NAME));
   if (byName) return byName.browser_download_url;
 
   const byExtension = assets.find((a) => a.name.toLowerCase().endsWith('.plist'));
@@ -75,17 +73,13 @@ async function checkForUpdate(t: ReturnType<typeof useLanguage>['t']) {
         installUrl = buildInstallUrl(manifestUrl);
       }
 
-      Alert.alert(
-        t.updateCheck.title,
-        t.updateCheck.message.replace('{version}', displayVersion),
-        [
-          { text: t.updateCheck.later, style: 'cancel' },
-          {
-            text: t.updateCheck.update,
-            onPress: () => Linking.openURL(installUrl || UPDATE_PAGE_URL),
-          },
-        ]
-      );
+      Alert.alert(t.updateCheck.title, t.updateCheck.message.replace('{version}', displayVersion), [
+        { text: t.updateCheck.later, style: 'cancel' },
+        {
+          text: t.updateCheck.update,
+          onPress: () => Linking.openURL(installUrl || UPDATE_PAGE_URL),
+        },
+      ]);
     }
   } catch {
     // Silent fail — not critical

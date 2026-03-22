@@ -271,7 +271,6 @@ export default function StandScreen({ cardTitle }: StandScreenProps) {
         syncItemsTimer.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, cardTitle, setItems]);
 
   const updateQuantity = useCallback((rowIndex: number, itemId: number, delta: number) => {

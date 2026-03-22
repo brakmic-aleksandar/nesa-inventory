@@ -1,4 +1,12 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  ReactNode,
+} from 'react';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -52,11 +60,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     [colorScheme, toggleColorScheme, colors, isDark]
   );
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };
 
 export const useTheme = () => {

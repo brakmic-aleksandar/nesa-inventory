@@ -21,10 +21,7 @@ interface GroupedOrder {
 /**
  * Group order items by source, then by article (name + code), aggregating colors.
  */
-export function groupOrderItems(
-  orderItems: OrderItem[],
-  notAvailableLabel: string
-): GroupedOrder {
+export function groupOrderItems(orderItems: OrderItem[], notAvailableLabel: string): GroupedOrder {
   const itemsBySource: Record<string, Record<string, ArticleGroup>> = {};
   const articleNameCounts: Record<string, Set<string>> = {};
 

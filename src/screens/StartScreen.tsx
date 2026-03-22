@@ -1,5 +1,13 @@
 import { useCallback, useState } from 'react';
-import { Alert, StyleSheet, Text, View, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -131,11 +139,12 @@ function GroupListView({
                   color={colors.primary}
                 />
                 <View style={styles.groupCardTextContainer}>
-                  <Text style={[styles.groupCardName, { color: colors.text }]}>
-                    {group.name}
-                  </Text>
+                  <Text style={[styles.groupCardName, { color: colors.text }]}>{group.name}</Text>
                   <Text style={[styles.groupCardCount, { color: colors.textSecondary }]}>
-                    {t.startScreen.customersCount.replace('{count}', String(group.customers.length))}
+                    {t.startScreen.customersCount.replace(
+                      '{count}',
+                      String(group.customers.length)
+                    )}
                   </Text>
                 </View>
               </View>
@@ -151,7 +160,11 @@ function GroupListView({
             activeOpacity={0.7}
             onPress={onCustomCustomer}
           >
-            <Ionicons name="pencil-outline" size={theme.iconSize.small} color={colors.textTertiary} />
+            <Ionicons
+              name="pencil-outline"
+              size={theme.iconSize.small}
+              color={colors.textTertiary}
+            />
             <Text style={[styles.customCustomerLinkText, { color: colors.textTertiary }]}>
               {t.startScreen.customCustomer}
             </Text>
@@ -177,20 +190,21 @@ export default function StartScreen({
   const [savedOrdersCount, setSavedOrdersCount] = useState(0);
   const [savedTodayNames, setSavedTodayNames] = useState<Set<string>>(new Set());
   const [sentTodayNames, setSentTodayNames] = useState<Set<string>>(new Set());
-  const {
-    customerGroups,
-    importFileStatus,
-    setImportFileStatus,
-    loadCustomers,
-    checkForNewData,
-  } = useCustomers(refreshKey);
+  const { customerGroups, importFileStatus, setImportFileStatus, loadCustomers, checkForNewData } =
+    useCustomers(refreshKey);
   const { importProgress, runImport, runImportFromBookmark, checkImportedFileChange } =
     useImportData();
 
   const refreshOrderStatus = useCallback(() => {
-    db.getSavedOrdersCount().then(setSavedOrdersCount).catch(() => {});
-    db.getTodayCustomerNames().then(setSavedTodayNames).catch(() => {});
-    db.getTodaySentCustomerNames().then(setSentTodayNames).catch(() => {});
+    db.getSavedOrdersCount()
+      .then(setSavedOrdersCount)
+      .catch(() => {});
+    db.getTodayCustomerNames()
+      .then(setSavedTodayNames)
+      .catch(() => {});
+    db.getTodaySentCustomerNames()
+      .then(setSentTodayNames)
+      .catch(() => {});
   }, []);
 
   useFocusEffect(
@@ -230,7 +244,8 @@ export default function StartScreen({
     try {
       await checkImportedFileChange();
 
-      const result = importFileStatus === 'changed' ? await runImportFromBookmark() : await runImport();
+      const result =
+        importFileStatus === 'changed' ? await runImportFromBookmark() : await runImport();
 
       if (result.status === 'cancelled') {
         return;
@@ -296,14 +311,13 @@ export default function StartScreen({
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerButton} onPress={onSavedOrdersPress}>
-          <Ionicons name="document-text-outline" size={theme.iconSize.large} color={colors.primary} />
+          <Ionicons
+            name="document-text-outline"
+            size={theme.iconSize.large}
+            color={colors.primary}
+          />
           {savedOrdersCount > 0 && (
-            <View
-              style={[
-                styles.savedOrdersBadge,
-                { backgroundColor: colors.primary },
-              ]}
-            >
+            <View style={[styles.savedOrdersBadge, { backgroundColor: colors.primary }]}>
               <Text style={styles.savedOrdersBadgeText}>{savedOrdersCount}</Text>
             </View>
           )}
@@ -329,8 +343,15 @@ export default function StartScreen({
         <Text style={[styles.title, { color: colors.text }]}>{t.startScreen.selectCustomer}</Text>
         {importFileStatus !== 'unchanged' && (
           <TouchableOpacity onPress={handleImportCustomers} activeOpacity={0.7}>
-            <Text style={[styles.reloadLinkText, { color: importFileStatus === 'missing' ? colors.warning : colors.primary }]}>
-              {importFileStatus === 'missing' ? t.startScreen.dataFileMissing : t.startScreen.newDataAvailableReload}
+            <Text
+              style={[
+                styles.reloadLinkText,
+                { color: importFileStatus === 'missing' ? colors.warning : colors.primary },
+              ]}
+            >
+              {importFileStatus === 'missing'
+                ? t.startScreen.dataFileMissing
+                : t.startScreen.newDataAvailableReload}
             </Text>
           </TouchableOpacity>
         )}
@@ -370,7 +391,6 @@ export default function StartScreen({
       />
 
       <ImportProgressModal visible={importProgress.visible} message={importProgress.message} />
-
     </SafeAreaView>
   );
 }

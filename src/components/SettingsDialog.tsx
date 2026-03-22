@@ -71,9 +71,7 @@ function SettingsForm({
   return (
     <>
       <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>
-          {t.settings.title}
-        </Text>
+        <Text style={[styles.modalTitle, { color: colors.text }]}>{t.settings.title}</Text>
         <Pressable onPress={onClose}>
           <Ionicons name="close" size={28} color={colors.textSecondary} />
         </Pressable>
@@ -81,9 +79,7 @@ function SettingsForm({
 
       <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
         <View style={[styles.settingsSection, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t.settings.language}
-          </Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t.settings.language}</Text>
           <View style={styles.languageContainer}>
             {languages.map((lang) => (
               <Pressable
@@ -105,8 +101,7 @@ function SettingsForm({
                   style={[
                     styles.languageButtonText,
                     {
-                      color:
-                        language === lang.code ? colors.primary : colors.textSecondary,
+                      color: language === lang.code ? colors.primary : colors.textSecondary,
                     },
                   ]}
                 >
@@ -118,11 +113,7 @@ function SettingsForm({
 
           <View style={styles.settingRow}>
             <View style={styles.settingLabelContainer}>
-              <Ionicons
-                name={isDark ? 'moon' : 'sunny'}
-                size={20}
-                color={colors.primary}
-              />
+              <Ionicons name={isDark ? 'moon' : 'sunny'} size={20} color={colors.primary} />
               <Text style={[styles.settingLabel, { color: colors.text }]}>
                 {t.settings.darkMode}
               </Text>
@@ -135,9 +126,7 @@ function SettingsForm({
             />
           </View>
 
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t.settings.email}
-          </Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t.settings.email}</Text>
           <TextInput
             style={[
               styles.settingsInput,

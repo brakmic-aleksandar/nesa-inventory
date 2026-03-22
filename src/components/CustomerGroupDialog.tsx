@@ -67,12 +67,7 @@ export function CustomerGroupDialog({
     : filtered;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>

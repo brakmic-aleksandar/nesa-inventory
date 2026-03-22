@@ -182,7 +182,12 @@ export default function OrderSummaryScreen({
         <Text style={[styles.summaryTitle, { color: colors.text }]}>
           {t.orderSummaryScreen.orderDetails}
         </Text>
-        <Text style={[styles.totalBadge, { backgroundColor: colors.primary, color: colors.textOnColor }]}>
+        <Text
+          style={[
+            styles.totalBadge,
+            { backgroundColor: colors.primary, color: colors.textOnColor },
+          ]}
+        >
           {totalItems} {t.orderSummaryScreen.items}
         </Text>
       </View>
@@ -251,10 +256,7 @@ export default function OrderSummaryScreen({
       </ScrollView>
 
       <View
-        style={[
-          styles.footer,
-          { backgroundColor: colors.surface, borderTopColor: colors.border },
-        ]}
+        style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}
       >
         {orderItems.length > 0 && (
           <View style={styles.footerTopRow}>
@@ -316,7 +318,11 @@ export default function OrderSummaryScreen({
           style={[styles.confirmButton, { backgroundColor: colors.success }]}
           onPress={onDone}
         >
-          <Ionicons name="checkmark-circle" size={theme.iconSize.medium} color={colors.textOnColor} />
+          <Ionicons
+            name="checkmark-circle"
+            size={theme.iconSize.medium}
+            color={colors.textOnColor}
+          />
           <Text style={[styles.confirmButtonText, { color: colors.textOnColor }]}>
             {t.orderSummaryScreen.done}
           </Text>
