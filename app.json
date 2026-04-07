@@ -6,7 +6,7 @@
     "autolinking": {
       "nativeModulesDir": "./src/modules"
     },
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/beaver-icon.png",
     "userInterfaceStyle": "automatic",
