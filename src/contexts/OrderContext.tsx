@@ -18,6 +18,7 @@ interface OrderItem {
   image: string;
   colorNumber?: string | null;
   itemCode?: string | null;
+  rowIndex?: number;
   colorOrder?: number | null;
 }
 
@@ -27,11 +28,13 @@ interface OrderContextType {
   customer: string;
   setCustomer: (customer: string) => void;
   getAllItems: () => {
+    id: number;
     name: string;
     quantity: number;
     source: string;
     colorNumber?: string | null;
     itemCode?: string | null;
+    rowIndex?: number;
     colorOrder?: number | null;
   }[];
   clearAll: () => void;
@@ -65,11 +68,13 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const getAllItems = useCallback(() => {
     const allItems: {
+      id: number;
       name: string;
       quantity: number;
       source: string;
       colorNumber?: string | null;
       itemCode?: string | null;
+      rowIndex?: number;
       colorOrder?: number | null;
     }[] = [];
 
@@ -77,11 +82,13 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       items.forEach((item) => {
         if (item.quantity > 0) {
           allItems.push({
+            id: item.id,
             name: item.name,
             quantity: item.quantity,
             source,
             colorNumber: item.colorNumber,
             itemCode: item.itemCode,
+            rowIndex: item.rowIndex,
             colorOrder: item.colorOrder ?? null,
           });
         }
@@ -118,22 +125,26 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (!currentCustomer.trim()) return;
 
     const allItems: {
+      id: number;
       name: string;
       quantity: number;
       source: string;
       colorNumber?: string | null;
       itemCode?: string | null;
+      rowIndex?: number;
       colorOrder?: number | null;
     }[] = [];
     Object.entries(itemsBySource).forEach(([source, items]) => {
       items.forEach((item) => {
         if (item.quantity > 0) {
           allItems.push({
+            id: item.id,
             name: item.name,
             quantity: item.quantity,
             source,
             colorNumber: item.colorNumber,
             itemCode: item.itemCode,
+            rowIndex: item.rowIndex,
             colorOrder: item.colorOrder ?? null,
           });
         }

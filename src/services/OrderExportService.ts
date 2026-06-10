@@ -6,10 +6,12 @@ import { db } from '../database/DatabaseService';
 import { translations } from '../localization';
 
 export interface OrderItem {
+  id?: number;
   name: string;
   quantity: number;
   source: string;
   colorNumber?: string | null;
+  rowIndex?: number;
   colorOrder?: number | null;
 }
 
@@ -110,6 +112,7 @@ export class OrderExportService {
     orderMap: Map<string, number>,
     sourceName: string,
     articleName: string,
+    rowIndex: number,
     colorOrder: number,
     colorNames: Iterable<string>
   ): number {
@@ -118,12 +121,12 @@ export class OrderExportService {
       .filter((name) => name.length > 0);
 
     if (names.length === 0) {
-      const emptyKey = `${sourceName}|${articleName}||${this.getColorOrderKey(colorOrder)}`;
+      const emptyKey = `${sourceName}|${articleName}||${this.getColorOrderKey(colorOrder)}|${rowIndex}`;
       return orderMap.get(emptyKey) || 0;
     }
 
     return names.reduce((sum, colorName) => {
-      const key = `${sourceName}|${articleName}|${colorName}|${this.getColorOrderKey(colorOrder)}`;
+      const key = `${sourceName}|${articleName}|${colorName}|${this.getColorOrderKey(colorOrder)}|${rowIndex}`;
       return sum + (orderMap.get(key) || 0);
     }, 0);
   }
@@ -213,7 +216,8 @@ export class OrderExportService {
     const orderMap = new Map<string, number>();
     items.forEach((item) => {
       const colorOrder = this.getColorOrderKey((item as any).colorOrder);
-      const key = `${item.source}|${item.name}|${item.colorNumber || ''}|${colorOrder}`;
+      const rowIndex = item.rowIndex ?? '';
+      const key = `${item.source}|${item.name}|${item.colorNumber || ''}|${colorOrder}|${rowIndex}`;
       const currentQuantity = orderMap.get(key) || 0;
       orderMap.set(key, currentQuantity + item.quantity);
     });
@@ -277,7 +281,7 @@ export class OrderExportService {
       const sortedRowIndices = Array.from(articlesByRow.keys()).sort((a, b) => a - b);
 
       const standHasQuantity = standItems.some((item) => {
-        const orderKey = `${stand.name}|${item.name}|${item.color_number || ''}|${this.getColorOrderKey(item.color_order)}`;
+        const orderKey = `${stand.name}|${item.name}|${item.color_number || ''}|${this.getColorOrderKey(item.color_order)}|${item.row_index}`;
         return (orderMap.get(orderKey) || 0) > 0;
       });
 
@@ -320,6 +324,7 @@ export class OrderExportService {
                     orderMap,
                     stand.name,
                     articleName,
+                    rowIndex,
                     col.color_order,
                     positionColorSet
                   );
@@ -379,6 +384,7 @@ export class OrderExportService {
                   orderMap,
                   stand.name,
                   articleName,
+                  rowIndex,
                   col.color_order,
                   positionColorSet
                 );
@@ -410,7 +416,7 @@ export class OrderExportService {
     const shelfItems = await db.getAllShelfItems();
     let shelfHasQuantity = false;
     shelfItems.forEach((shelfItem) => {
-      const orderKey = `${SHELF_SOURCE_ID}|${shelfItem.name}||null`;
+      const orderKey = `${SHELF_SOURCE_ID}|${shelfItem.name}||null|`;
       const orderedQty = orderMap.get(orderKey) || 0;
       if (orderedQty > 0) shelfHasQuantity = true;
     });
@@ -427,7 +433,7 @@ export class OrderExportService {
       const shelfHeaderRow = shelfWorksheet.addRow([t.export.articleLabel, t.export.quantityLabel]);
       shelfTableRows.push(shelfHeaderRow);
       shelfItems.forEach((shelfItem) => {
-        const orderKey = `${SHELF_SOURCE_ID}|${shelfItem.name}||null`;
+        const orderKey = `${SHELF_SOURCE_ID}|${shelfItem.name}||null|`;
         const orderedQty = orderMap.get(orderKey) || 0;
         if (orderedQty > 0) {
           const shelfDataRow = shelfWorksheet.addRow([shelfItem.name, orderedQty]);
