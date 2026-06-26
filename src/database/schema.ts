@@ -62,6 +62,7 @@ export interface SavedOrderItem {
   color_number: string | null;
   item_code: string | null;
   color_order: number | null;
+  row_index: number | null;
   image: string | null;
 }
 
@@ -148,6 +149,7 @@ export const CREATE_TABLES_SQL = `
     color_number TEXT,
     item_code TEXT,
     color_order INTEGER,
+    row_index INTEGER,
     image TEXT,
     FOREIGN KEY (order_id) REFERENCES saved_orders(id) ON DELETE CASCADE
   );

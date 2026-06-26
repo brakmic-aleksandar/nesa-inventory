@@ -27,6 +27,7 @@ function groupItemsBySource(items: SavedOrderItem[]): Record<
     colorNumber?: string | null;
     itemCode?: string | null;
     colorOrder?: number | null;
+    rowIndex?: number;
   }>
 > {
   const result: Record<
@@ -39,6 +40,7 @@ function groupItemsBySource(items: SavedOrderItem[]): Record<
       colorNumber?: string | null;
       itemCode?: string | null;
       colorOrder?: number | null;
+      rowIndex?: number;
     }>
   > = {};
 
@@ -54,6 +56,7 @@ function groupItemsBySource(items: SavedOrderItem[]): Record<
       colorNumber: item.color_number,
       itemCode: item.item_code,
       colorOrder: item.color_order,
+      rowIndex: item.row_index ?? undefined,
     });
   });
 
@@ -69,6 +72,7 @@ function savedItemsToOrderItems(items: SavedOrderItem[]): OrderItem[] {
       source: item.source,
       colorNumber: item.color_number,
       colorOrder: item.color_order,
+      rowIndex: item.row_index ?? undefined,
     }));
 }
 

@@ -58,7 +58,7 @@ class DatabaseService {
   async rollbackTransaction(): Promise<void> {
     await this.execRawSQL('ROLLBACK');
   }
-  private readonly DB_VERSION = 9; // Increment this when schema changes
+  private readonly DB_VERSION = 10; // Increment this when schema changes
 
   async init(): Promise<void> {
     try {
@@ -329,6 +329,16 @@ class DatabaseService {
 
       if (!columnNames.includes('sent_at')) {
         await this.db.execAsync('ALTER TABLE saved_orders ADD COLUMN sent_at TEXT');
+      }
+    }
+
+    // Migration from version 9 to 10: Add row_index to saved_order_items
+    if (fromVersion < 10) {
+      const tableInfo = await this.db.getAllAsync<any>('PRAGMA table_info(saved_order_items)');
+      const columnNames = tableInfo.map((col: any) => col.name);
+
+      if (!columnNames.includes('row_index')) {
+        await this.db.execAsync('ALTER TABLE saved_order_items ADD COLUMN row_index INTEGER');
       }
     }
 
@@ -664,6 +674,7 @@ class DatabaseService {
       colorNumber?: string | null;
       itemCode?: string | null;
       colorOrder?: number | null;
+      rowIndex?: number;
       image?: string;
     }[]
   ): Promise<number> {
@@ -680,7 +691,7 @@ class DatabaseService {
 
     for (const item of items) {
       await this.db.runAsync(
-        'INSERT INTO saved_order_items (order_id, name, quantity, source, color_number, item_code, color_order, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO saved_order_items (order_id, name, quantity, source, color_number, item_code, color_order, row_index, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           orderId,
           item.name,
@@ -689,6 +700,7 @@ class DatabaseService {
           item.colorNumber ?? null,
           item.itemCode ?? null,
           item.colorOrder ?? null,
+          item.rowIndex ?? null,
           item.image ?? null,
         ]
       );
@@ -747,6 +759,7 @@ class DatabaseService {
       colorNumber?: string | null;
       itemCode?: string | null;
       colorOrder?: number | null;
+      rowIndex?: number;
       image?: string;
     }[]
   ): Promise<void> {
@@ -760,7 +773,7 @@ class DatabaseService {
 
     for (const item of items) {
       await this.db.runAsync(
-        'INSERT INTO saved_order_items (order_id, name, quantity, source, color_number, item_code, color_order, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO saved_order_items (order_id, name, quantity, source, color_number, item_code, color_order, row_index, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           orderId,
           item.name,
@@ -769,6 +782,7 @@ class DatabaseService {
           item.colorNumber ?? null,
           item.itemCode ?? null,
           item.colorOrder ?? null,
+          item.rowIndex ?? null,
           item.image ?? null,
         ]
       );
